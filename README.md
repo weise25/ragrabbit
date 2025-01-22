@@ -2,6 +2,8 @@
 
 Your Site AI Search and LLM.txt in Minutes, Open Source with 1 Click Deploy on Vercel.
 
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fmadarco%2Fragrabbit&env=OPENAI_API_KEY,ADMIN_USER,ADMIN_PASSWORD&envDescription=Get%20an%20OpenAI%20Api%20Key%20and%20set%20ADMIN_USER%20and%20ADMIN_PASSWORD%20to%20the%20desired%20credentials%20to%20secure%20the%20%2Fadmin%20section.%20Also%20be%20sure%20to%20enable%20the%20Postgres%20database%20integration&envLink=https%3A%2F%2Fplatform.openai.com%2Fapi-keys&demo-title=RagRabbit%20-%20AI%20Site%20Search%20and%20LLM.txt&demo-description=Site%20AI%20Search%20and%20LLM.txt%20in%20Minutes%2C%20Open%20Source%20with%201%20Click%20Deploy%20on%20Vercel.&demo-url=https%3A%2F%2Fragrabbit.vercel.app%2F&demo-image=https%3A%2F%2Fgithub.com%2Fmadarco%2Fragrabbit%2Fblob%2Fmain%2Fapps%2Fdocs%2Fpublic%2Fragrabbit_demo.png&stores=%5B%7B%22type%22%3A%22postgres%22%7D%5D)
+
 ![RagRabbit Demo](./apps/docs/public/ragrabbit.gif)
 
 ## How it works
@@ -25,15 +27,22 @@ It also generates a LLM.txt file from your content.
 
 ### Demo
 
-[RagRabbit Demo](https://ragrabbit.vercel.app/)
+View [RagRabbit Demo Page](https://ragrabbit.vercel.app/widget/demo)
 
-![RagRabbit Demo](./apps/docs/public/ragrabbit_demo_answer.png)
+![RagRabbit Demo](./apps/docs/public/ragrabbit_demo.png)
 
 ## Install
 
 To install on Vercel:
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fmadarco%2Fragrabbit&env=OPENAI_API_KEY,ADMIN_USER,ADMIN_PASSWORD&envDescription=Get%20an%20OpenAI%20Api%20Key%20and%20set%20ADMIN_USER%20and%20ADMIN_PASSWORD%20to%20the%20desired%20credentials%20to%20secure%20the%20%2Fadmin%20section.%20Also%20be%20sure%20to%20enable%20the%20Postgres%20database%20integration&envLink=https%3A%2F%2Fplatform.openai.com%2Fapi-keys&demo-title=Mada-Vector%3A%20RAG%20and%20Semantic%20Search&demo-description=%20Llamaindex%20Vercel%20Postgres%20RAG%20and%20Semantic%20Search&demo-url=https%3A%2F%2Fmada-vector.vercel.app%2F&demo-image=https%3A%2F%2Fmada-vector.vercel.app%2Fopengraph-image.png&stores=%5B%7B%22type%22%3A%22postgres%22%7D%5D)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fmadarco%2Fragrabbit&env=OPENAI_API_KEY,ADMIN_USER,ADMIN_PASSWORD&envDescription=Get%20an%20OpenAI%20Api%20Key%20and%20set%20ADMIN_USER%20and%20ADMIN_PASSWORD%20to%20the%20desired%20credentials%20to%20secure%20the%20%2Fadmin%20section.%20Also%20be%20sure%20to%20enable%20the%20Postgres%20database%20integration&envLink=https%3A%2F%2Fplatform.openai.com%2Fapi-keys&demo-title=RagRabbit%20-%20AI%20Site%20Search%20and%20LLM.txt&demo-description=Site%20AI%20Search%20and%20LLM.txt%20in%20Minutes%2C%20Open%20Source%20with%201%20Click%20Deploy%20on%20Vercel.&demo-url=https%3A%2F%2Fragrabbit.vercel.app%2F&demo-image=https%3A%2F%2Fgithub.com%2Fmadarco%2Fragrabbit%2Fblob%2Fmain%2Fapps%2Fdocs%2Fpublic%2Fragrabbit_demo.png&stores=%5B%7B%22type%22%3A%22postgres%22%7D%5D)
+
+Requirements:
+
+- Node.js 20.x
+- PostgreSQL w/ pgVector
+- OpenAI API Key
+- (Optional) Trigger.dev API Key
 
 ## Configuration
 
@@ -62,6 +71,7 @@ See [.env.example](./apps/saas/.env.example) for the complete list.
 
 Use the Indexing section to add a new url/website to index, either a single url or a website to crawl recursively:
 
+![RagRabbit Indexing](./apps/docs/public/ragrabbit_indexing.png)
 ![RagRabbit Crawl Modal](./apps/docs/public/ragrabbit_crawl_modal.png)
 
 Then start the Job Runner (keep the tab open until it finish)
