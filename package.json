@@ -1,0 +1,35 @@
+{
+  "name": "ragrabbit",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "dev:utils": "turbo db:fg db:studio storybook:start",
+    "lint": "turbo lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "clean": "rimraf -g ./**/node_modules ./**/dist ./**/.turbo ./**/.coverage ./**/.next",
+    "db": "cd packages/db && ./scripts/start-database.sh -d",
+    "db:stop": "cd packages/db && ./scripts/stop-database.sh",
+    "db:reset": "cd packages/db && ./scripts/reset-database.sh",
+    "db:delete": "cd packages/db && ./scripts/delete-database.sh",
+    "db:fg": "cd packages/db && ./scripts/start-database.sh",
+    "syncpack:fix": "syncpack fix-mismatches",
+    "syncpack:update": "syncpack update",
+    "export": "rsync -a --progress . ../ragrabbit_public --exclude '/.git' --exclude 'node_modules' --exclude 'dist'  --exclude '.turbo'  --exclude '.coverage' --exclude '.next' --exclude '.rollup.cache' --exclude '.netlify' --exclude '.output'",
+    "import": "rsync -a --progress ../ragrabbit_public/ . --exclude '/.pnpm-lock.yaml' --exclude '/.package.json' --exclude '/.git' --exclude 'node_modules' --exclude 'dist'  --exclude '.turbo'  --exclude '.coverage' --exclude '.next' --exclude '.rollup.cache' --exclude '.netlify' --exclude '.output'"
+  },
+  "devDependencies": {
+    "prettier": "^3.2.5",
+    "syncpack": "^13.0.0",
+    "turbo": "^2.1.2",
+    "typescript": "^5.7.2"
+  },
+  "packageManager": "pnpm@8.15.6",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "rimraf": "^6.0.1"
+  }
+}

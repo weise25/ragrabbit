@@ -1,0 +1,2 @@
+# Don't format Shadcn to make it easier to merge updates:
+/packages/design/shadcn/
