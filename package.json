@@ -16,8 +16,8 @@
     "db:fg": "cd packages/db && ./scripts/start-database.sh",
     "syncpack:fix": "syncpack fix-mismatches",
     "syncpack:update": "syncpack update",
-    "export": "rsync -a --progress . ../ragrabbit_public --exclude '/.git' --exclude 'node_modules' --exclude 'dist'  --exclude '.turbo'  --exclude '.coverage' --exclude '.next' --exclude '.rollup.cache' --exclude '.netlify' --exclude '.output'",
-    "import": "rsync -a --progress ../ragrabbit_public/ . --exclude '/.pnpm-lock.yaml' --exclude '/.package.json' --exclude '/.git' --exclude 'node_modules' --exclude 'dist'  --exclude '.turbo'  --exclude '.coverage' --exclude '.next' --exclude '.rollup.cache' --exclude '.netlify' --exclude '.output'"
+    "export": "rsync -a --progress . ../ragrabbit_public --exclude '/.git' --exclude '/apps/web' --exclude 'node_modules' --exclude 'dist'  --exclude '.turbo'  --exclude '.coverage' --exclude '.next' --exclude '.rollup.cache' --exclude '.netlify' --exclude '.output'",
+    "import": "rsync -a --progress ../ragrabbit_public/ . --exclude '/.pnpm-lock.yaml'  --exclude '/apps/web' --exclude '/.package.json' --exclude '/.git' --exclude 'node_modules' --exclude 'dist'  --exclude '.turbo'  --exclude '.coverage' --exclude '.next' --exclude '.rollup.cache' --exclude '.netlify' --exclude '.output'"
   },
   "devDependencies": {
     "prettier": "^3.2.5",
