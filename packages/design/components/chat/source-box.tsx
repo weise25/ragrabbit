@@ -66,7 +66,7 @@ export function SourceBoxList(props: {
 
   return (
     <div
-      className={`flex flex-nowrap overflow-x-auto md:overflow-x-visible gap-2 justify-start w-full min-w-0 cursor-grab md:cursor-default active:cursor-grabbing md:active:cursor-default select-none md:select-text ${
+      className={`flex flex-nowrap overflow-x-auto gap-2 justify-start w-full min-w-0 cursor-grab active:cursor-grabbing select-none ${
         props.className
       }`}
       style={{ WebkitOverflowScrolling: "touch" }}
@@ -76,12 +76,12 @@ export function SourceBoxList(props: {
       }}
     >
       {props.sources.slice(0, initialShow).map((source) => (
-        <div key={source.url} className="flex-none md:flex-1 w-64 md:w-auto md:max-w-64">
+        <div key={source.url} className="flex-none w-64">
           <SourceBox {...source} />
         </div>
       ))}
       {props.sources.length > initialShow && (
-        <div className="flex-none md:flex-1 w-64 md:w-auto md:max-w-64 h-full">
+        <div className="flex-none w-64 h-full">
           <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-4 h-full">
             <div className="flex flex-col gap-2 h-full justify-between">
               {props.sources.slice(initialShow, initialShow + 2).map((source) => (
