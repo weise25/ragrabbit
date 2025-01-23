@@ -1,5 +1,5 @@
 "use server";
-import { authActionClient } from "@repo/actions";
+import { actionClientWithMeta, authActionClient } from "@repo/actions";
 import db from "@repo/db";
 import { widgetConfigSchema } from "./actions.schema";
 import { revalidatePath } from "next/cache";
@@ -32,11 +32,11 @@ export const widgetConfigAction = authActionClient
     return { success: true, data: widgetConfig };
   });
 
-export const getWidgetConfig = authActionClient.metadata({ name: "getWidgetConfig" }).action(async ({ ctx }) => {
+export const getWidgetConfig = actionClientWithMeta.metadata({ name: "getWidgetConfig" }).action(async ({ ctx }) => {
   const widgetConfig = await db
     .select()
     .from(widgetConfigTable)
-    .where(eq(widgetConfigTable.organizationId, ctx.session.user.organizationId))
+    .where(eq(widgetConfigTable.organizationId, 1))
     .limit(1);
   return widgetConfig[0];
 });
