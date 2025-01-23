@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 3000",
+    "dev": "cross-env NODE_NO_WARNINGS=1 next dev --port 3000",
     "build": "next build",
     "vercel-build": "pnpm db:migrate && next build",
     "start": "next start",
@@ -54,6 +54,7 @@
     "@types/react": "19.0.7",
     "@types/react-dom": "19.0.3",
     "@vercel/node": "^5.0.2",
+    "cross-env": "^7.0.3",
     "eslint": "^9.18.0",
     "eslint-config-next": "15.1.4",
     "eslint-plugin-react": "^7.36.1",

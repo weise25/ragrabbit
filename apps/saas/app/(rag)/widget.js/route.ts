@@ -80,6 +80,20 @@ export async function GET(request: Request) {
       height: 70%;
       width: auto;
     }
+    @media (max-width: 640px) {
+      .ragrabbit-modal-content {
+        height: 80%;
+      }
+      .ragrabbit-modal-content.centered {
+        right: 0;
+        left: 0;
+        top: 10%;
+        bottom: 10%;
+        width: 100%;
+        max-width: 100%;
+        border-radius: 0;
+      }
+    }
     .ragrabbit-close {
       position: absolute;
       top: 10px;
