@@ -14,7 +14,7 @@ export const runtime = "nodejs";
 export default async function ChatPage() {
   return (
     <div className="relative">
-      <div className="min-h-[100dvh] pt-4 pb-8 px-4">
+      <div className="flex flex-col justify-center items-center min-h-[100dvh] pt-4 pb-8 px-4">
         <div className="w-full">
           <RscChat />
         </div>

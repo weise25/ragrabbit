@@ -7,7 +7,7 @@ import { revalidateCache } from "../actions";
 import { useRouter } from "next/navigation";
 
 interface ResetCacheButtonProps {
-  organizationId: string;
+  organizationId: number;
 }
 
 export function ResetCacheButton({ organizationId }: ResetCacheButtonProps) {

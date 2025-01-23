@@ -3,6 +3,8 @@ import { authOrLogin } from "@repo/auth";
 import WidgetDemo from "../../widget/demo/page";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/design/shadcn/card";
 import Script from "next/script";
+import { Button } from "@repo/design/shadcn/button";
+import { MessageSquareIcon } from "@repo/design/base/icons";
 
 export const metadata: Metadata = {
   title: "Widget Integration Guide",
@@ -19,7 +21,14 @@ export default async function WidgetPage() {
           <h2 className="text-2xl font-bold tracking-tight">Widget Integration</h2>
           <p className="text-muted-foreground">Learn how to integrate the chat and search widgets into your website</p>
         </div>
-        <div className="flex items-center space-x-2"></div>
+        <div className="flex items-center space-x-2">
+          <Button variant="default" size="sm" asChild>
+            <a href={`/widget/demo`} target="_blank">
+              <MessageSquareIcon className="h-4 w-4 mr-2" />
+              Demo Page
+            </a>
+          </Button>
+        </div>
       </div>
       <Card>
         <CardContent>
