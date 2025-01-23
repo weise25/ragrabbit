@@ -37,7 +37,7 @@ export const sidebarMenu: MenuGroup[] = [
       },
       {
         href: "/dashboard/widget",
-        label: "Settings",
+        label: "Configuration",
         icon: MessageSquareCode,
       },
       {
