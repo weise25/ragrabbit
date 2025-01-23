@@ -24,7 +24,7 @@ export const env = createEnv({
     GOOGLE_CLIENT_ID: optional,
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_ID ? required : optional,
     RESEND_AUTH: bool,
-    RESEND_API_KEY: process.env.RESEND_AUTH && !process.env.SIMULATE_EMAILS ? required : optional,
+    RESEND_API_KEY: process.env.RESEND_AUTH === "true" && !process.env.SIMULATE_EMAILS ? required : optional,
     RESEND_ALLOWED_EMAILS: csv,
     SIMULATE_EMAILS: bool,
     AUTH_USERNAME: optional,
