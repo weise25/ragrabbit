@@ -84,6 +84,7 @@ export async function processDbItem(indexedId: number): Promise<ProcessResult> {
       url: indexed.url,
       title,
       description,
+      organizationId: indexed.organizationId,
     });
 
     await db
