@@ -13,7 +13,6 @@ import type { ClientMessage, ServerMessage } from "./ai-provider";
 export async function ragAgent(message: string): Promise<ClientMessage> {
   const history = getMutableAIState();
   history.update((messages: ServerMessage[]) => [...messages, { role: "user", content: message }]);
-
   const ui = createStreamableUI(<div>Searching for {message}...</div>);
 
   async function chat() {

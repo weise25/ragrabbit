@@ -1,51 +1,33 @@
 "use client";
 
+import { useChat } from "ai/react";
 import { createContext, useContext, useState } from "react";
 
 export interface ChatContextType {
-  agentMode: boolean;
-  welcomeMessage: string;
-  suggestedQueries: string[];
-  logoUrl: string;
-  setAgentMode: (mode: boolean) => void;
-  setWelcomeMessage: (message: string) => void;
-  setSuggestedQueries: (queries: string[]) => void;
-  setLogoUrl: (url: string) => void;
+  chat: ReturnType<typeof useChat> | undefined;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
-function useChat() {
+function useChatProvider() {
   const context = useContext(ChatContext);
   if (context === undefined) {
-    throw new Error("useChat must be used within a ChatProvider");
+    throw new Error("useChatProvider must be used within a ChatProvider");
   }
   return context;
 }
 
-interface ChatProviderProps {
+interface ChatConfigProviderProps {
   children: React.ReactNode;
   initialData?: Partial<ChatContextType>;
 }
 
-function ChatProvider({ children, initialData = {} }: ChatProviderProps) {
-  const [agentMode, setAgentMode] = useState(initialData.agentMode ?? false);
-  const [welcomeMessage, setWelcomeMessage] = useState(initialData.welcomeMessage ?? "");
-  const [suggestedQueries, setSuggestedQueries] = useState<string[]>(initialData.suggestedQueries ?? []);
-  const [logoUrl, setLogoUrl] = useState(initialData.logoUrl ?? "");
-
+function ChatProvider({ children, initialData = {} }: ChatConfigProviderProps) {
   const value = {
-    agentMode,
-    welcomeMessage,
-    suggestedQueries,
-    logoUrl,
-    setAgentMode,
-    setWelcomeMessage,
-    setSuggestedQueries,
-    setLogoUrl,
+    chat: initialData.chat,
   };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
 }
 
-export { ChatProvider, useChat };
+export { ChatProvider, useChatProvider };

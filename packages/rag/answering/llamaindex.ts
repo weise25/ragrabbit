@@ -44,7 +44,7 @@ export async function getRagTool() {
   return tool;
 }
 
-export async function getRagContextChat(language?: string, organizationId?: number) {
+export async function getRagRetriever(organizationId?: number) {
   const index = await VectorStoreIndex.fromVectorStore(await getVectorStore());
   const retriever = index.asRetriever({
     similarityTopK: 5,
@@ -54,13 +54,20 @@ export async function getRagContextChat(language?: string, organizationId?: numb
         }
       : undefined,
   });
+  return retriever;
+}
 
+export function getPrompt(language?: string) {
   let prompt = systemPrompt;
 
   if (language) {
     prompt += `\n- Answer the questions in ${language}`;
   }
+  return prompt;
+}
 
-  const chatEngine = new ContextChatEngine({ retriever, systemPrompt: prompt });
+export async function getRagContextChat(language?: string, organizationId?: number) {
+  const retriever = await getRagRetriever(organizationId);
+  const chatEngine = new ContextChatEngine({ retriever, systemPrompt: getPrompt(language) });
   return chatEngine;
 }

@@ -1,7 +1,7 @@
 import Chat from "@repo/design/components/chat/chat";
 import { AI } from "./ai-provider";
 import ChatRuntime from "./chat-runtime";
-import { ChatProvider } from "@repo/design/components/chat/chat-provider";
+import { ChatConfigProvider } from "@repo/design/components/chat/chat-config-provider";
 import { getWidgetConfig } from "@/app/(rag)/dashboard/widget/actions";
 
 export default async function RscChat() {
@@ -19,9 +19,9 @@ export default async function RscChat() {
   return (
     <AI>
       <ChatRuntime>
-        <ChatProvider initialData={initialData}>
+        <ChatConfigProvider initialData={initialData}>
           <Chat />
-        </ChatProvider>
+        </ChatConfigProvider>
       </ChatRuntime>
     </AI>
   );

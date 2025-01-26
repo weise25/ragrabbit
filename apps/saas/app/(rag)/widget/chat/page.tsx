@@ -3,6 +3,7 @@ import { Metadata } from "next";
 import { Card, CardContent } from "@repo/design/shadcn/card";
 import RscChat from "@/app/(rag)/chat/rsc/chat";
 import Image from "next/image";
+import UiChat from "../../chat/ui/chat";
 
 export const metadata: Metadata = {
   title: "Chat",
@@ -16,7 +17,7 @@ export default async function ChatPage() {
     <div className="relative">
       <div className="flex flex-col justify-center items-center min-h-[100dvh] pt-4 pb-8 px-4">
         <div className="w-full">
-          <RscChat />
+          <UiChat />
         </div>
       </div>
       <div className="absolute float-right bottom-3 right-0 text-right text-sm text-muted-foreground pr-8">

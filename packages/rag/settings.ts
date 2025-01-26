@@ -2,6 +2,12 @@ import { Anthropic, Groq, OpenAI, OpenAIEmbedding, Settings } from "llamaindex";
 import { HuggingFaceEmbedding } from "llamaindex";
 import { env } from "./env.mjs";
 
+export enum LLMEnum {
+  groq = "Groq",
+  anthropic = "Anthropic",
+  openai = "OpenAI",
+}
+
 export enum EmbeddingModel {
   openai = "openai",
   baai = "BAAI/bge-small-en-v1.5",
@@ -16,9 +22,9 @@ export const chunkSize = {
 
 Settings.chunkSize = chunkSize[EmbeddingModel[env.EMBEDDING_MODEL || "openai"]] || 512;
 
-let llm;
+export let LLM: LLMEnum;
 if (env.LLM_MODEL === "groq") {
-  llm = "Groq";
+  LLM = LLMEnum.groq;
 
   // Fix: Llamaindex ignores the maxTokens setting, so we need to set the contextWindow manually:
   class GroqFixed extends Groq {
@@ -38,10 +44,10 @@ if (env.LLM_MODEL === "groq") {
     },
   });
 } else if (env.LLM_MODEL === "anthropic") {
-  llm = "Anthropic";
+  LLM = LLMEnum.anthropic;
   Settings.llm = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 } else {
-  llm = "OpenAI";
+  LLM = LLMEnum.openai;
   Settings.llm = new OpenAI({
     model: "gpt-4o-mini",
     ...(env.OPENAI_API_BASE_URL ? { baseURL: env.OPENAI_API_BASE_URL } : {}),
@@ -57,4 +63,4 @@ if (embeddingModel === EmbeddingModel.openai) {
   });
 }
 
-console.log(`🤖 Using ${llm} and ${embeddingModel} embedding model`);
+console.log(`🤖 Using ${LLM} and ${embeddingModel} embedding model`);

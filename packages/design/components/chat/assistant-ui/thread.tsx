@@ -3,51 +3,39 @@
 import {
   ActionBarPrimitive,
   BranchPickerPrimitive,
-  BranchPickerPrimitiveRootProps,
   ComposerPrimitive,
   MessagePrimitive,
   ThreadPrimitive,
   useAssistantRuntime,
-  useAssistantRuntimeStore,
-  useThreadRuntime,
+  useMessage,
 } from "@assistant-ui/react";
 import type { FC } from "react";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@repo/design/shadcn/avatar";
+import { cn } from "@repo/design/lib/utils";
+import { Avatar, AvatarFallback } from "@repo/design/shadcn/avatar";
 import { Button } from "@repo/design/shadcn/button";
 import {
   ArrowDownIcon,
-  AudioLinesIcon,
-  BotMessageSquareIcon,
   CheckIcon,
   ChevronLeftIcon,
-  ChevronRightIcon,
   CopyIcon,
-  LucideTimerReset,
-  PencilIcon,
   SendHorizontalIcon,
-  StopCircleIcon,
+  ChevronRightIcon,
+  RefreshCwIcon,
+  PencilIcon,
 } from "lucide-react";
+import Image from "next/image";
+import { useChatConfig } from "../chat-config-provider";
 import { MarkdownText } from "./markdown-text";
 import { TooltipIconButton } from "./tooltip-icon-button";
-import { cn } from "@repo/design/lib/utils";
-import { AgentModeSwitch } from "../agent-mode-switch";
-import { useUIState } from "ai/rsc";
-import { useRouter } from "next/navigation";
-import { useChat } from "../chat-provider";
-import Image from "next/image";
+import { useChatProvider } from "../chat-provider";
+import { SourceBoxListStory } from "../source-box.stories";
+import { Source, SourceBoxList } from "../source-box";
+import { Skeleton } from "@repo/design/shadcn/skeleton";
 
 export const MyThread: FC = () => {
-  let [messages, setMessages] = [null, null];
-  // To test in Storybook:
-  try {
-    [messages, setMessages] = useUIState<any>();
-  } catch (error) {
-    console.error(error);
-  }
-
-  const router = useRouter();
-  const chatConfig = useChat();
+  const chatConfig = useChatConfig();
+  const { chat } = useChatProvider();
   return (
     <ThreadPrimitive.Root className="bg-background h-full w-full">
       <ThreadPrimitive.Viewport className="flex h-full flex-col items-center overflow-y-scroll scroll-smooth bg-inherit px-4 pt-8">
@@ -64,10 +52,10 @@ export const MyThread: FC = () => {
         <div className="min-h-8 flex-grow" />
 
         <div className="sticky bottom-0 mt-3 flex w-full max-w-4xl flex-col items-center justify-end rounded-t-lg bg-inherit pb-4">
-          {/* <MyThreadScrollToBottom /> */}
+          <MyThreadScrollToBottom />
           <ThreadPrimitive.If empty={false}>
             <ThreadPrimitive.If running={false}>
-              <Button variant="outline" className="mb-4" onClick={() => setMessages?.([])}>
+              <Button variant="outline" className="mb-4" onClick={() => chat.setMessages([])}>
                 Start new chat
               </Button>
             </ThreadPrimitive.If>
@@ -86,9 +74,30 @@ export const MyThread: FC = () => {
               </div>
             )}
           </ThreadPrimitive.If>
+          <MySuggestedPrompts />
         </div>
       </ThreadPrimitive.Viewport>
     </ThreadPrimitive.Root>
+  );
+};
+
+const MySuggestedPrompts: FC = () => {
+  const { chat } = useChatProvider();
+  const message = chat.messages[chat.messages.length - 1];
+  if (!message || !message.annotations) return null;
+  const annotation: any = message.annotations.find((a: any) => a.type === "suggested-prompts");
+  if (!annotation) return null;
+  const suggestions = annotation.data;
+  return (
+    <div className="mt-4 text-center">
+      {suggestions.map((query) => (
+        <ThreadPrimitive.Suggestion prompt={query} method="replace" autoSend asChild key={query}>
+          <Button variant="outline" className="flex-1 py-1 md:py-2 mr-2 mb-2">
+            {query}
+          </Button>
+        </ThreadPrimitive.Suggestion>
+      ))}
+    </div>
   );
 };
 
@@ -107,7 +116,7 @@ const MyThreadScrollToBottom: FC = () => {
 };
 
 const MyThreadWelcome: FC = () => {
-  const chatConfig = useChat();
+  const chatConfig = useChatConfig();
 
   return (
     <ThreadPrimitive.Empty>
@@ -166,7 +175,7 @@ const MyUserMessage: FC = () => {
         <MessagePrimitive.Content />
       </div>
 
-      {/* <MyBranchPicker className="col-span-full col-start-1 row-start-2 -mr-1 justify-end" /> */}
+      <MyBranchPicker className="col-span-full col-start-1 row-start-2 -mr-1 justify-end" />
     </MessagePrimitive.Root>
   );
 };
@@ -178,11 +187,11 @@ const MyUserActionBar: FC = () => {
       autohide="not-last"
       className="col-start-1 mr-3 mt-2.5 flex flex-col items-end"
     >
-      {/* <ActionBarPrimitive.Edit asChild>
+      <ActionBarPrimitive.Edit asChild>
         <TooltipIconButton tooltip="Edit">
           <PencilIcon />
         </TooltipIconButton>
-      </ActionBarPrimitive.Edit> */}
+      </ActionBarPrimitive.Edit>
     </ActionBarPrimitive.Root>
   );
 };
@@ -205,20 +214,48 @@ const MyEditComposer: FC = () => {
 };
 
 const MyAssistantMessage: FC = () => {
+  const { chat } = useChatProvider();
+  const current = useMessage();
+  const message = chat?.messages.find((m) => m.id === current.id);
+
+  const annotation: any = message?.annotations.find((a: any) => a.type === "sources");
+  const sources = annotation?.data;
+
+  // Show skeleton loading state when message is empty
+  if (!message?.content && !message?.annotations) {
+    return (
+      <div className="relative grid w-full max-w-4xl grid-cols-[auto_auto_1fr] grid-rows-[auto_1fr] py-4">
+        <Avatar className="col-start-1 row-span-full row-start-1 mr-4">
+          <AvatarFallback>AI</AvatarFallback>
+        </Avatar>
+        <div className="col-span-2 col-start-2 space-y-3">
+          <Skeleton className="h-4 w-3/4" />
+          <Skeleton className="h-4 w-1/2" />
+          <Skeleton className="h-4 w-2/3" />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <MessagePrimitive.Root className="relative grid w-full max-w-4xl grid-cols-[auto_auto_1fr] grid-rows-[auto_1fr] py-4">
+    <div className="relative grid w-full max-w-4xl grid-cols-[auto_auto_1fr] grid-rows-[auto_1fr] py-4">
       <Avatar className="col-start-1 row-span-full row-start-1 mr-4">
-        <AvatarFallback>A</AvatarFallback>
+        <AvatarFallback>AI</AvatarFallback>
       </Avatar>
 
       <div className="text-foreground col-span-2 col-start-2 row-start-1 my-1.5 break-words leading-7">
-        <MessagePrimitive.Content components={{ Text: MarkdownText }} />
+        {message?.annotations && <SourceBoxList sources={sources} />}
       </div>
+      <MessagePrimitive.Root>
+        <div className="text-foreground col-span-2 col-start-2 row-start-1 my-1.5 break-words leading-7">
+          <MessagePrimitive.Content components={{ Text: MarkdownText }} />
+        </div>
 
-      <MyAssistantActionBar />
+        <MyAssistantActionBar />
 
-      {/* <MyBranchPicker className="col-start-2 row-start-2 -ml-2 mr-2" /> */}
-    </MessagePrimitive.Root>
+        <MyBranchPicker className="col-start-2 row-start-2 -ml-2 mr-2" />
+      </MessagePrimitive.Root>
+    </div>
   );
 };
 
@@ -243,7 +280,7 @@ const MyAssistantActionBar: FC = () => {
             <StopCircleIcon />
           </TooltipIconButton>
         </ActionBarPrimitive.StopSpeaking>
-      </MessagePrimitive.If>
+      </MessagePrimitive.If>*/}
       <ActionBarPrimitive.Copy asChild>
         <TooltipIconButton tooltip="Copy">
           <MessagePrimitive.If copied>
@@ -258,12 +295,12 @@ const MyAssistantActionBar: FC = () => {
         <TooltipIconButton tooltip="Refresh">
           <RefreshCwIcon />
         </TooltipIconButton>
-      </ActionBarPrimitive.Reload> */}
+      </ActionBarPrimitive.Reload>
     </ActionBarPrimitive.Root>
   );
 };
 
-const MyBranchPicker: FC<BranchPickerPrimitiveRootProps> = ({ className, ...rest }) => {
+const MyBranchPicker: FC<any> = ({ className, ...rest }) => {
   return (
     <BranchPickerPrimitive.Root
       hideWhenSingleBranch

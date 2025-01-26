@@ -1,6 +1,8 @@
 "use client";
 
-export function SourceBox(props: { title: string; url: string; abstract: string; score: number }) {
+export type Source = { title: string; url: string; abstract: string; score: number };
+
+export function SourceBox(props: Source) {
   return (
     <div className="group rounded-lg border bg-card text-card-foreground shadow-sm p-4 h-full">
       <div className="flex flex-col justify-between h-full gap-2">
@@ -32,7 +34,7 @@ export function SourceBox(props: { title: string; url: string; abstract: string;
 
 export function SourceBoxList(props: {
   className?: string;
-  sources: { title: string; url: string; abstract: string; score: number }[];
+  sources: Source[];
   showMoreUrl?: string;
   maxItems?: number;
 }) {
@@ -66,7 +68,7 @@ export function SourceBoxList(props: {
 
   return (
     <div
-      className={`flex flex-nowrap overflow-x-auto gap-2 justify-start w-full min-w-0 cursor-grab active:cursor-grabbing select-none ${
+      className={`flex flex-nowrap overflow-x-auto gap-2 justify-start w-full min-w-0 cursor-grab active:cursor-grabbing select-none pb-4 ${
         props.className
       }`}
       style={{ WebkitOverflowScrolling: "touch" }}
@@ -95,13 +97,13 @@ export function SourceBoxList(props: {
                 </div>
               ))}
 
-              {props.sources.length > initialShow + 2 && (
-                <div className="mt-auto pt-1">
+              <div className="mt-auto pt-1">
+                {props.sources.length > initialShow + 2 && (
                   <a href={props.showMoreUrl} className="text-sm text-primary cursor-pointer">
-                    And {props.sources.length - initialShow} more... {/* → */}
+                    And {props.sources.length - initialShow - 2} more... {/* → */}
                   </a>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>

@@ -27,9 +27,9 @@ export default async function ChatPage() {
       </div>
       <Card>
         <CardContent className="pt-6">
-          {/* Or use Server Components with: <RscChat /> */}
-          <RscChat />
-          {/* <UiChat /> */}
+          <UiChat />
+          {/* EXPERIMENTAL: Server Components with <RscChat /> */}
+          {/* <RscChat /> */}
         </CardContent>
       </Card>
     </>

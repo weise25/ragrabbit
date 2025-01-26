@@ -2,7 +2,7 @@ import { AssistantRuntimeProvider, ThreadMessageLike, useExternalStoreRuntime } 
 import type { Meta, StoryObj } from "@storybook/react";
 import Chat from "./chat";
 import { createAI } from "ai/rsc";
-import { ChatProvider } from "./chat-provider";
+import { ChatConfigProvider } from "./chat-provider";
 
 function MockChat({ messages, isRunning }: { messages?: ThreadMessageLike[]; isRunning?: boolean }) {
   const mockRuntime = useExternalStoreRuntime({
@@ -14,9 +14,9 @@ function MockChat({ messages, isRunning }: { messages?: ThreadMessageLike[]; isR
 
   return (
     <AssistantRuntimeProvider runtime={mockRuntime}>
-      <ChatProvider>
+      <ChatConfigProvider>
         <Chat />
-      </ChatProvider>
+      </ChatConfigProvider>
     </AssistantRuntimeProvider>
   );
 }

@@ -2,10 +2,20 @@ import db, { pool } from "@repo/db";
 import { eq } from "@repo/db/drizzle";
 import { EmbeddingDimensions, llamaindexEmbedding } from "@repo/db/schema";
 import { logger } from "@repo/logger";
-import { Document, IngestionPipeline, SentenceSplitter, Settings } from "llamaindex";
+import {
+  Document,
+  IngestionPipeline,
+  KeywordExtractor,
+  SentenceSplitter,
+  Settings,
+  SummaryExtractor,
+  QuestionsAnsweredExtractor,
+} from "llamaindex";
 import { PGVectorStore } from "llamaindex/vector-store/PGVectorStore";
 import { env } from "../env.mjs";
 import { EmbeddingModel } from "../settings";
+import { extractMetadata } from "./metadata.extract";
+import { RagMetadata } from "./metadata.type";
 
 export async function generateEmbeddings(
   content: string,
@@ -17,18 +27,19 @@ export async function generateEmbeddings(
     const llm = Settings.llm;
     const pipeline = new IngestionPipeline({
       vectorStore: vectorStore,
+
       transformations: [new SentenceSplitter({ chunkSize: Settings.chunkSize }), vectorStore.embedModel],
     });
+
+    const documentMetadata = await extractMetadata(content);
 
     const doc = new Document({
       text: content,
       metadata: {
         contentId: data.id,
         organizationId: data.organizationId,
-        pageUrl: data.url,
-        pageTitle: data.title,
-        pageDescription: data.description,
-      },
+        ...documentMetadata,
+      } satisfies RagMetadata,
     });
 
     // Delete any existing embeddings for this index:
