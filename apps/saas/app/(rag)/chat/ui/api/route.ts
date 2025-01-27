@@ -64,7 +64,6 @@ export async function POST(req: Request, res: Response) {
         const question = source.node.metadata.questions?.[0];
         suggestedPrompts.add(question);
       }
-      console.log("### RAG sources", sources);
       dataStream.writeMessageAnnotation({
         type: "sources",
         data: sources,
@@ -88,7 +87,7 @@ export async function POST(req: Request, res: Response) {
       const result = streamText({
         model: openai("gpt-4o-mini"),
         system: getPrompt(),
-        experimental_transform: smoothStream(),
+        //experimental_transform: smoothStream(),
         messages,
         // id format for server-side messages:
         experimental_generateMessageId: createIdGenerator({

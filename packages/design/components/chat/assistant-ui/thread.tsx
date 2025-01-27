@@ -8,6 +8,7 @@ import {
   ThreadPrimitive,
   useAssistantRuntime,
   useMessage,
+  useThread,
 } from "@assistant-ui/react";
 import type { FC } from "react";
 
@@ -34,8 +35,7 @@ import { Source, SourceBoxList } from "../source-box";
 import { Skeleton } from "@repo/design/shadcn/skeleton";
 
 export const MyThread: FC = () => {
-  const chatConfig = useChatConfig();
-  const { chat } = useChatProvider();
+  const { threads } = useAssistantRuntime();
   return (
     <ThreadPrimitive.Root className="bg-background h-full w-full">
       <ThreadPrimitive.Viewport className="flex h-full flex-col items-center overflow-y-scroll scroll-smooth bg-inherit px-4 pt-8">
@@ -55,25 +55,13 @@ export const MyThread: FC = () => {
           <MyThreadScrollToBottom />
           <ThreadPrimitive.If empty={false}>
             <ThreadPrimitive.If running={false}>
-              <Button variant="outline" className="mb-4" onClick={() => chat.setMessages([])}>
+              <Button variant="outline" className="mb-4" onClick={() => threads.switchToNewThread()}>
                 Start new chat
               </Button>
             </ThreadPrimitive.If>
           </ThreadPrimitive.If>
           <MyComposer />
-          <ThreadPrimitive.If empty={true}>
-            {chatConfig.suggestedQueries && (
-              <div className="mt-4 text-center">
-                {chatConfig.suggestedQueries.map((query) => (
-                  <ThreadPrimitive.Suggestion prompt={query} method="replace" autoSend asChild key={query}>
-                    <Button variant="outline" className="flex-1 py-1 md:py-2 mr-2 mb-2">
-                      {query}
-                    </Button>
-                  </ThreadPrimitive.Suggestion>
-                ))}
-              </div>
-            )}
-          </ThreadPrimitive.If>
+          <MySuggestedPromptsInitial />
           <MySuggestedPrompts />
         </div>
       </ThreadPrimitive.Viewport>
@@ -81,13 +69,30 @@ export const MyThread: FC = () => {
   );
 };
 
+const MySuggestedPromptsInitial: FC = () => {
+  const chatConfig = useChatConfig();
+  return (
+    <ThreadPrimitive.If empty={true}>
+      {chatConfig.suggestedQueries && (
+        <div className="mt-4 text-center">
+          {chatConfig.suggestedQueries.map((query) => (
+            <ThreadPrimitive.Suggestion prompt={query} method="replace" autoSend asChild key={query}>
+              <Button variant="outline" className="flex-1 py-1 md:py-2 mr-2 mb-2">
+                {query}
+              </Button>
+            </ThreadPrimitive.Suggestion>
+          ))}
+        </div>
+      )}
+    </ThreadPrimitive.If>
+  );
+};
+
 const MySuggestedPrompts: FC = () => {
-  const { chat } = useChatProvider();
-  const message = chat.messages[chat.messages.length - 1];
-  if (!message || !message.annotations) return null;
-  const annotation: any = message.annotations.find((a: any) => a.type === "suggested-prompts");
-  if (!annotation) return null;
-  const suggestions = annotation.data;
+  const lastMessage = useThread((t) => t.messages.at(-1));
+  const annotation: any = lastMessage?.metadata?.unstable_annotations?.find((a: any) => a.type === "suggested-prompts");
+  const suggestions = annotation?.data;
+  if (!suggestions) return null;
   return (
     <div className="mt-4 text-center">
       {suggestions.map((query) => (
@@ -214,15 +219,12 @@ const MyEditComposer: FC = () => {
 };
 
 const MyAssistantMessage: FC = () => {
-  const { chat } = useChatProvider();
-  const current = useMessage();
-  const message = chat?.messages.find((m) => m.id === current.id);
-
-  const annotation: any = message?.annotations.find((a: any) => a.type === "sources");
+  const message = useMessage();
+  const annotation: any = message?.metadata?.unstable_annotations?.find((a: any) => a.type === "sources");
   const sources = annotation?.data;
 
   // Show skeleton loading state when message is empty
-  if (!message?.content && !message?.annotations) {
+  if (!message?.content?.length && !annotation) {
     return (
       <div className="relative grid w-full max-w-4xl grid-cols-[auto_auto_1fr] grid-rows-[auto_1fr] py-4">
         <Avatar className="col-start-1 row-span-full row-start-1 mr-4">
@@ -244,7 +246,7 @@ const MyAssistantMessage: FC = () => {
       </Avatar>
 
       <div className="text-foreground col-span-2 col-start-2 row-start-1 my-1.5 break-words leading-7">
-        {message?.annotations && <SourceBoxList sources={sources} />}
+        {annotation && <SourceBoxList sources={sources} />}
       </div>
       <MessagePrimitive.Root>
         <div className="text-foreground col-span-2 col-start-2 row-start-1 my-1.5 break-words leading-7">

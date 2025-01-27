@@ -36,8 +36,8 @@
     "typescript": "^5.7.2"
   },
   "dependencies": {
-    "@assistant-ui/react": "^0.7.53",
-    "@assistant-ui/react-ai-sdk": "^0.7.11",
+    "@assistant-ui/react": "^0.7.56",
+    "@assistant-ui/react-ai-sdk": "^0.7.13",
     "@assistant-ui/react-markdown": "^0.7.11",
     "@assistant-ui/react-syntax-highlighter": "^0.7.9",
     "@hookform/resolvers": "^3.9.0",
