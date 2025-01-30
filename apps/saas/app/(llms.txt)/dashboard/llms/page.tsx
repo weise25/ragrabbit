@@ -110,8 +110,8 @@ export default async function LlmPage() {
                 <CardTitle>Table of Contents</CardTitle>
                 <CardDescription>
                   This is how your{" "}
-                  <a href="/llm.txt" target="_blank" className="text-blue-500 underline">
-                    {baseUrl}/llm.txt
+                  <a href="/llms.txt" target="_blank" className="text-blue-500 underline">
+                    {baseUrl}/llms.txt
                   </a>{" "}
                   file looks like. The content is cached for 1 hour.
                 </CardDescription>
@@ -137,8 +137,8 @@ export default async function LlmPage() {
                 <CardTitle>Full Content</CardTitle>
                 <CardDescription>
                   This is how your{" "}
-                  <a href="/llm-full.txt" target="_blank" className="text-blue-500 underline">
-                    {baseUrl}/llm-full.txt
+                  <a href="/llms-full.txt" target="_blank" className="text-blue-500 underline">
+                    {baseUrl}/llms-full.txt
                   </a>{" "}
                   file looks like. The content is cached for 1 hour.
                 </CardDescription>
