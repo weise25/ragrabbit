@@ -1,5 +1,8 @@
 "use client";
 
+import styles from "./source-box.module.css";
+import { cn } from "@repo/design/lib/utils";
+
 export type Source = { title: string; url: string; abstract: string; score: number };
 
 export function SourceBox(props: Source) {
@@ -77,13 +80,24 @@ export function SourceBoxList(props: {
         handleMouseDown(e);
       }}
     >
-      {props.sources.slice(0, initialShow).map((source) => (
-        <div key={source.url} className="flex-none w-64">
+      {props.sources.slice(0, initialShow).map((source, index) => (
+        <div
+          key={source.url}
+          className={cn("flex-none w-64", styles.fadeInUp)}
+          style={{
+            animationDelay: `${index * 150}ms`,
+          }}
+        >
           <SourceBox {...source} />
         </div>
       ))}
       {props.sources.length > initialShow && (
-        <div className="flex-none w-64 h-full">
+        <div
+          className={cn("flex-none w-64 h-full", styles.fadeInUp)}
+          style={{
+            animationDelay: `${initialShow * 150}ms`,
+          }}
+        >
           <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-4 h-full">
             <div className="flex flex-col gap-2 h-full justify-between">
               {props.sources.slice(initialShow, initialShow + 2).map((source) => (
@@ -98,10 +112,12 @@ export function SourceBoxList(props: {
               ))}
 
               <div className="mt-auto pt-1">
-                {props.sources.length > initialShow + 2 && (
+                {props.sources.length > initialShow + 2 ? (
                   <a href={props.showMoreUrl} className="text-sm text-primary cursor-pointer">
-                    And {props.sources.length - initialShow - 2} more... {/* → */}
+                    And {props.sources.length - initialShow - 2} more...
                   </a>
+                ) : (
+                  <p className="text-sm pt-1">&nbsp;</p>
                 )}
               </div>
             </div>

@@ -38,6 +38,7 @@ export async function generateEmbeddings(
       metadata: {
         contentId: data.id,
         organizationId: data.organizationId,
+        pageUrl: data.url,
         ...documentMetadata,
       } satisfies RagMetadata,
     });

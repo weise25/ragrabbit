@@ -325,8 +325,8 @@ importers:
         specifier: ^0.10.0
         version: 0.10.0
       drizzle-kit:
-        specifier: ^0.30.2
-        version: 0.30.2
+        specifier: ^0.30.3
+        version: 0.30.3
       drizzle-orm:
         specifier: ^0.38.4
         version: 0.38.4(@types/pg@8.11.10)(@vercel/postgres@0.10.0)(pg@8.13.1)
@@ -382,6 +382,9 @@ importers:
       '@hookform/resolvers':
         specifier: ^3.9.0
         version: 3.9.0(react-hook-form@7.53.0)
+      '@multiavatar/multiavatar':
+        specifier: ^1.0.7
+        version: 1.0.7
       '@radix-ui/react-alert-dialog':
         specifier: ^1.1.2
         version: 1.1.2(@types/react-dom@19.0.3)(@types/react@19.0.7)(react-dom@19.0.0)(react@19.0.0)
@@ -487,6 +490,9 @@ importers:
       tailwindcss-animate:
         specifier: ^1.0.7
         version: 1.0.7(tailwindcss@3.4.17)
+      use-debounce:
+        specifier: ^10.0.4
+        version: 10.0.4(react@19.0.0)
       zod:
         specifier: ^3.24.1
         version: 3.24.1
@@ -5641,6 +5647,10 @@ packages:
     resolution: {integrity: sha512-tVkljjeEaAhCqTzajSdgbQ6gE6f3oneVwa3iXR6csiEwXXOFsiC6Uh9iAjAhXPtqa/XMDHWjjeNH/77m/Yq2dw==}
     dependencies:
       sparse-bitfield: 3.0.3
+    dev: false
+
+  /@multiavatar/multiavatar@1.0.7:
+    resolution: {integrity: sha512-Yg9Uw57bmlErsWL0CSv4d6D4ZqVBE00OZmYr9MRgygoXZdboNtsEI6FbBRw1AY8l88Sm1ARcyojtlm2uwUn0Zg==}
     dev: false
 
   /@neondatabase/serverless@0.9.5:
@@ -12922,8 +12932,8 @@ packages:
     engines: {node: '>=12'}
     dev: true
 
-  /drizzle-kit@0.30.2:
-    resolution: {integrity: sha512-vhdLrxWA32WNVF77NabpSnX7pQBornx64VDQDmKddRonOB2Xe/yY4glQ7rECoa+ogqcQNo7VblLUbeBK6Zn9Ow==}
+  /drizzle-kit@0.30.3:
+    resolution: {integrity: sha512-kT8sgyC2hZrtOh5okhEBiwgx8jx+EjLUFoANFVVkBbxIjcb8XjaUorZ0rwCEUEd7THclI3ZARR64pmxloMW3Aw==}
     hasBin: true
     dependencies:
       '@drizzle-team/brocli': 0.10.2
@@ -22945,6 +22955,15 @@ packages:
     resolution: {integrity: sha512-GLMG0Jc/jiKov/3Ulid1wbv3r54K9HlMW29IWcDFPEqFkSO2nS0MuefWgMJpeHQ9YJeXDL3ZUF+P3jdXlZX/cQ==}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0
+    dependencies:
+      react: 19.0.0
+    dev: false
+
+  /use-debounce@10.0.4(react@19.0.0):
+    resolution: {integrity: sha512-6Cf7Yr7Wk7Kdv77nnJMf6de4HuDE4dTxKij+RqE9rufDsI6zsbjyAxcH5y2ueJCQAnfgKbzXbZHYlkFwmBlWkw==}
+    engines: {node: '>= 16.0.0'}
+    peerDependencies:
+      react: '*'
     dependencies:
       react: 19.0.0
     dev: false

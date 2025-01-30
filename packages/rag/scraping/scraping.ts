@@ -39,7 +39,7 @@ export async function scrapeUrl(
     redirectedUrl = response.url;
   }
   if (response.status !== 200) {
-    throw new UserError("Failed to fetch page: " + response.statusText);
+    throw new UserError("Failed to fetch, error from page: " + response.statusText + " status: " + response.status);
   }
 
   const contentType = contentTypeHelper.parse(response.headers.get("content-type"));

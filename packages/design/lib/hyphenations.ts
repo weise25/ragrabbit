@@ -1,5 +1,11 @@
 export function hyphenateUrl(url: string) {
-  const urlObj = new URL(url);
+  let urlObj;
+  try {
+    urlObj = new URL(url);
+  } catch (e) {
+    console.error(e, "Error parsing url: " + url);
+    return url;
+  }
   let domain = urlObj.hostname.replace(/^www\./, "");
   let path = urlObj.pathname;
   let query = urlObj.search;

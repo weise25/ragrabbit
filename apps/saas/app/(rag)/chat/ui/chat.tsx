@@ -1,14 +1,17 @@
 import Chat from "@repo/design/components/chat/chat";
 import { UiChatRuntime } from "./chat-runtime";
 import { getWidgetConfig } from "../../dashboard/widget/actions";
-import { ChatConfigProvider } from "@repo/design/components/chat/chat-config-provider";
+import { ChatConfigProvider, ChatContextType } from "@repo/design/components/chat/chat-config-provider";
 
-export default async function UiChat() {
+export default async function UiChat({ modalMode }: { modalMode?: boolean }) {
   const { data: widgetConfig } = await getWidgetConfig({});
 
-  let initialData = {};
+  let initialData: Partial<ChatContextType> = {
+    modalMode: modalMode ?? false,
+  };
   if (widgetConfig) {
     initialData = {
+      ...initialData,
       agentMode: false,
       welcomeMessage: widgetConfig.welcomeMessage,
       suggestedQueries: widgetConfig.suggestedQueries,

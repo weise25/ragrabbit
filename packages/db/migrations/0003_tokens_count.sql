@@ -1,0 +1,1 @@
+ALTER TABLE "messages" ADD COLUMN "token_count" integer DEFAULT 0 NOT NULL;

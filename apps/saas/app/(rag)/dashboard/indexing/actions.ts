@@ -3,18 +3,19 @@
 import { authActionClient } from "@repo/actions";
 import { UnauthorizedError } from "@repo/core";
 import db from "@repo/db";
-import { and, asc, count, desc, eq, inArray, sql } from "@repo/db/drizzle";
+import { and, asc, desc, eq, inArray, sql } from "@repo/db/drizzle";
 import { Indexed, indexedTable, normalizeUrl } from "@repo/db/schema";
 import { generateEmbeddingsDb } from "@repo/rag/indexing/db";
-import { processDbItem, processWithRetry } from "@repo/rag/processing/db";
 import { scrapeDbItem } from "@repo/rag/scraping/db";
 import { revalidatePath } from "next/cache";
 import {
   addCrawlSchema,
   addIndexSchema,
+  editSingleIndexSchema,
   removeManyIndexesSchema,
   runIndexAllSchema,
   runIndexingSchema,
+  updateCrawlSchema,
 } from "./actions.schema";
 import { jobs } from "./jobs";
 
@@ -111,46 +112,6 @@ export const runProcessingAction = authActionClient
     return { success: true };
   });
 
-export const runProcessingNowAction = authActionClient
-  .metadata({ name: "runProcessingNow" })
-  .action(async ({ ctx }) => {
-    const pending = await db
-      .select({ count: count() })
-      .from(indexedTable)
-      .where(
-        and(
-          inArray(indexedTable.status, ["PENDING", "SCRAPED"]),
-          eq(indexedTable.organizationId, ctx.session.user.organizationId)
-        )
-      );
-
-    if (pending[0].count == 0) {
-      return { success: true, count: 0 };
-    }
-
-    const next = await db
-      .select({ id: indexedTable.id })
-      .from(indexedTable)
-      .where(
-        and(
-          inArray(indexedTable.status, ["PENDING", "SCRAPED"]),
-          eq(indexedTable.organizationId, ctx.session.user.organizationId)
-        )
-      )
-      .limit(1);
-
-    const processed = await processWithRetry(next[0].id);
-    return { success: processed.success, processedIndexId: next[0].id, count: pending[0].count - 1 };
-  });
-
-export const getPendingCountAction = authActionClient.metadata({ name: "getPendingCount" }).action(async ({ ctx }) => {
-  const result = await db
-    .select({ count: count() })
-    .from(indexedTable)
-    .where(inArray(indexedTable.status, ["PENDING", "SCRAPED"]));
-  return { count: result[0].count };
-});
-
 export const runIndexAllAction = authActionClient
   .schema(runIndexAllSchema)
   .metadata({ name: "runIndexAll" })
@@ -195,3 +156,50 @@ export const getAllIndexes = authActionClient.metadata({ name: "getAllIndexes" }
       asc(indexedTable.createdAt)
     )) as Indexed[];
 });
+
+export const updateIndexAction = authActionClient
+  .schema(editSingleIndexSchema)
+  .metadata({ name: "updateIndex" })
+  .action(async ({ parsedInput: { id, url, clearFoundFrom }, ctx }) => {
+    const index = await db
+      .update(indexedTable)
+      .set({
+        url: url,
+        normalizedUrl: normalizeUrl(url),
+        ...(clearFoundFrom ? { foundFromIndexId: null } : {}),
+      })
+      .where(and(eq(indexedTable.id, id), eq(indexedTable.organizationId, ctx.session.user.organizationId)))
+      .returning();
+
+    if (index.length === 0) {
+      throw new UnauthorizedError("Index not found or not authorized");
+    }
+
+    await jobs.triggerProcessing([id], ctx.session.user.organizationId);
+    revalidatePath("/dashboard/indexing");
+    return { success: true, data: index[0] };
+  });
+
+export const updateCrawlAction = authActionClient
+  .schema(updateCrawlSchema)
+  .metadata({ name: "updateCrawl" })
+  .action(async ({ parsedInput: { id, url, isSitemap, scrapeOptions }, ctx }) => {
+    const index = await db
+      .update(indexedTable)
+      .set({
+        url,
+        normalizedUrl: normalizeUrl(url),
+        isSitemap,
+        scrapeOptions,
+      } as any)
+      .where(and(eq(indexedTable.id, id), eq(indexedTable.organizationId, ctx.session.user.organizationId)))
+      .returning();
+
+    if (index.length === 0) {
+      throw new UnauthorizedError("Index not found or not authorized");
+    }
+
+    await jobs.triggerProcessing([id], ctx.session.user.organizationId);
+    revalidatePath("/dashboard/indexing");
+    return { success: true, data: index[0] };
+  });

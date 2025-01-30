@@ -1,6 +1,6 @@
 import { UserError } from "@repo/core";
 import db from "@repo/db";
-import { eq } from "@repo/db/drizzle";
+import { and, eq } from "@repo/db/drizzle";
 import { Indexed, indexedTable } from "@repo/db/schema";
 import { logger } from "@repo/logger";
 import { generateEmbeddings } from "../indexing/llamaindex";
@@ -19,7 +19,7 @@ export async function processWithRetry(indexedId: number, maxRetries = 1): Promi
     try {
       return await processDbItem(indexedId);
     } catch (e) {
-      logger.error("Error processing content", { indexedId, error: e.message });
+      logger.error({ indexedId, error: e.message }, "Error processing content");
       if (i === maxRetries - 1) {
         return await saveDbItemFailure(indexedId, e);
       } else {
@@ -37,6 +37,10 @@ export async function processDbItem(indexedId: number): Promise<ProcessResult> {
   });
   if (!indexed) {
     throw new UserError("Index page not found");
+  }
+
+  if (indexed.status == "PENDING_CLEAN") {
+    return await cleanDbCrawlItem(indexed as Indexed);
   }
 
   await db
@@ -92,7 +96,8 @@ export async function processDbItem(indexedId: number): Promise<ProcessResult> {
       .set({
         title,
         description,
-        status: "DONE",
+        // NB: if is a crawl origin, we mark as pending clean to delete removed pages at the end:
+        status: indexed.doCrawl ? "PENDING_CLEAN" : "DONE",
         indexedAt: new Date(),
       } as Indexed)
       .where(eq(indexedTable.id, indexed.id));
@@ -105,7 +110,7 @@ export async function processDbItem(indexedId: number): Promise<ProcessResult> {
 }
 
 export async function saveDbItemFailure(indexedId: number, error: Error): Promise<ProcessResult> {
-  logger.error("Error processing content", { indexedId, error: error.message });
+  logger.error({ indexedId, error: error.message }, "Error processing content");
   await db
     .update(indexedTable)
     .set({
@@ -118,5 +123,27 @@ export async function saveDbItemFailure(indexedId: number, error: Error): Promis
     newIndexedIds: [],
     success: false,
     error: error.message,
+  };
+}
+
+export async function cleanDbCrawlItem(indexed: Indexed) {
+  logger.info("Cleaning completed crawl item", { indexedId: indexed.id });
+
+  // Delete any items that were marked as outdated and were not processed during the crawl
+  await db
+    .delete(indexedTable)
+    .where(and(eq(indexedTable.foundFromIndexId, indexed.id), eq(indexedTable.status, "OUTDATED")));
+
+  // Mark this crawl as complete:
+  await db
+    .update(indexedTable)
+    .set({
+      status: "DONE",
+      indexedAt: new Date(),
+    } as Indexed)
+    .where(eq(indexedTable.id, indexed.id));
+  return {
+    newIndexedIds: [],
+    success: true,
   };
 }

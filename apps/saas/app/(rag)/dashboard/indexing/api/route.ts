@@ -3,22 +3,30 @@ import { count, eq } from "@repo/db/drizzle";
 import { indexedTable } from "@repo/db/schema";
 import { processWithRetry } from "@repo/rag/processing/db";
 
-export const maxDuration = 300;
+import { getPendingCountAction, runProcessingNowAction } from "../actions.processing";
+import { auth } from "@repo/auth";
+
+export const maxDuration = 30;
 export const runtime = "nodejs";
 
 export async function POST(req: Request, res: Response) {
+  const { user } = await auth();
+  if (!user) {
+    return new Response("Unauthorized", { status: 401 });
+  }
   const body = await req.json();
   const { id } = body;
 
-  return new Response(JSON.stringify(await processWithRetry(id)));
+  const { data } = await runProcessingNowAction({});
+  return new Response(JSON.stringify(data));
 }
 
 export async function GET(req: Request, res: Response) {
-  //TODO auth
-  const [pendingCount] = await db
-    .select({ count: count() })
-    .from(indexedTable)
-    .where(eq(indexedTable.status, "PENDING"));
+  const { user } = await auth();
+  if (!user) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+  const { data } = await getPendingCountAction({});
 
-  return new Response(JSON.stringify({ pendingCount }));
+  return new Response(JSON.stringify(data));
 }

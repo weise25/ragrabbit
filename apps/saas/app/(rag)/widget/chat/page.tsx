@@ -15,9 +15,9 @@ export const runtime = "nodejs";
 export default async function ChatPage() {
   return (
     <div className="relative">
-      <div className="flex flex-col justify-center items-center min-h-[100dvh] pt-4 pb-8 px-4">
+      <div className="flex flex-col justify-center items-center min-h-[100dvh] px-4">
         <div className="w-full">
-          <UiChat />
+          <UiChat modalMode={true} />
         </div>
       </div>
       <div className="absolute float-right bottom-3 right-0 text-right text-sm text-muted-foreground pr-8">

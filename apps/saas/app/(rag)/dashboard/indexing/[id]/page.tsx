@@ -22,6 +22,7 @@ import { notFound } from "next/navigation";
 import { ReEmbeddingsButton } from "../components/buttons";
 import { ReScrapeButton } from "../components/buttons";
 import { RagMetadata } from "@repo/rag/indexing/metadata.type";
+import EditButton from "../components/edit-button";
 
 function formatBytes(bytes: number) {
   if (!bytes) return "0 Bytes";
@@ -92,6 +93,7 @@ export default async function IndexContentPage({ params }: { params: { id: strin
         <div className="flex items-center space-x-2">
           <ReScrapeButton indexIds={[indexId]} refresh={true} />
           <ReEmbeddingsButton indexIds={[indexId]} refresh={true} />
+          <EditButton index={indexed} />
         </div>
       </div>
 

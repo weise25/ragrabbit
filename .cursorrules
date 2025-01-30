@@ -10,7 +10,10 @@ Fullstack development:
 - Use the packages/auth package for authentication, which exposes an auth function, eg: const session = await authOrLogin(); const email = session.user.email
 - Put the components for the UI in the packages/design package: put them in packages/design/components/_section name_/
 - Put the data schema in the packages/db package using DrizzleORM and PostgreSQL. The db can be acquired with `import db from "@repo/db"`, the schema with `import { usersTable } from "@repo/db/schema"`, the DrizzleOrm utilities with `import { eq } from "@repo/db/drizzle"`
+- When updating the db schema, run `cd apps/saas && pnpm drizzle-kit generate` to generate the new migrations while `pnpm drizzle-kit migrate` to apply them to the db.
 - For API routes prefer using Server Actions in the apps/saas app directly, inside the same folder as the page and route
+- For Server Actions, uses the this uses next-safe-action package and prefer using the authActionClient from the packages/actions package, eg: const result = await authActionClient.schema(mySchema).metadata({ name: "myAction" }).action(async ({ parsedInput, ctx }) => { ... });
+- Calling a Server Action from a page can be done directly eg: const { data: result } = await myAction({}); or const { executeAsync} = useAction(myAction); const { data } = await executeAsync();
 
 Naming Conventions:
 
@@ -117,6 +120,29 @@ const urlsFieldArray = useFieldArray({
   <EasyFormFieldSwitch form={form} name="switch" title="Switch" label="Switch Label" />
   <EasyFormSubmit form={form} isExecuting={false} />
 </EasyForm>
+```
+
+An example of a Server Action actions.ts file:
+
+```
+import { addIndexSchema } from "./schema.actions";
+export const addIndex = authActionClient.schema(addIndexSchema).metadata({ name: "addIndex" }).action(async ({ parsedInput, ctx }) => {
+  // ...
+});
+```
+
+and add a schema file for the actions: schema.actions.ts:
+
+```
+export const addIndexSchema = z.object({
+  urls: z.array(z.string()).min(1),
+});
+```
+
+how to call the action from a page:
+
+```
+const result = await addIndex({ urls: ["https://example.com", "https://example.org"] });
 ```
 
 Performance Optimization:

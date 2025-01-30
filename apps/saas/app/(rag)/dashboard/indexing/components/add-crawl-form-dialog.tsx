@@ -21,13 +21,25 @@ import { useAction } from "next-safe-action/hooks";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { addCrawlAction } from "../actions";
+import { addCrawlAction, updateCrawlAction } from "../actions";
 import { addCrawlSchema } from "../actions.schema";
 import { useIndexes } from "../providers/indexes-provider";
 
 export type CrawlFormValues = z.infer<typeof addCrawlSchema>;
 
-export default function AddCrawlFormDialog({ defaultValues }: { defaultValues?: Partial<CrawlFormValues> }) {
+interface AddCrawlFormDialogProps {
+  defaultValues?: Partial<CrawlFormValues>;
+  indexId?: number;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export default function AddCrawlFormDialog({
+  defaultValues,
+  indexId,
+  open: controlledOpen,
+  onOpenChange,
+}: AddCrawlFormDialogProps) {
   // Start with an empty field:
   defaultValues = defaultValues || {
     url: "",
@@ -46,10 +58,12 @@ export default function AddCrawlFormDialog({ defaultValues }: { defaultValues?: 
 
   // Handle action call manually to manage Dialog close:
   const { refresh: refreshIndexes } = useIndexes();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = onOpenChange ?? setInternalOpen;
 
   const onSubmit = async (data: CrawlFormValues) => {
-    const result = await addCrawlAction(data);
+    const result = indexId ? await updateCrawlAction({ ...data, id: indexId }) : await addCrawlAction(data);
     if (result?.data?.success) {
       form.reset();
       setOpen(false);
@@ -60,15 +74,15 @@ export default function AddCrawlFormDialog({ defaultValues }: { defaultValues?: 
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline">Add Site to Crawl</Button>
-      </DialogTrigger>
+      <DialogTrigger asChild>{!indexId && <Button variant="outline">Add Site to Crawl</Button>}</DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Add Site to Crawl</DialogTitle>
-          <DialogDescription>Add a site to be crawled from a starting URL</DialogDescription>
+          <DialogTitle>{indexId ? "Edit Site" : "Add Site to Crawl"}</DialogTitle>
+          <DialogDescription>
+            {indexId ? "Edit site crawl settings" : "Add a site to be crawled from a starting URL"}
+          </DialogDescription>
         </DialogHeader>
-        <EasyForm form={form} onSubmit={onSubmit} message="Content added">
+        <EasyForm form={form} onSubmit={onSubmit} message={indexId ? "Site updated" : "Content added"}>
           <EasyFormFieldText form={form} name="url" title="Url" placeholder="https://..." />
 
           <div className="flex flex-col gap-2">

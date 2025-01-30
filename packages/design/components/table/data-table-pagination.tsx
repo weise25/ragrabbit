@@ -1,4 +1,4 @@
-import { ChevronLeftIcon, ChevronRightIcon, DoubleArrowLeftIcon, DoubleArrowRightIcon } from "@radix-ui/react-icons";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "@repo/design/base/icons";
 import { Table } from "@tanstack/react-table";
 
 import { Button } from "@repo/design/shadcn/button";
@@ -6,13 +6,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 interface DataTablePaginationProps<TData> {
   table: Table<TData>;
+  totalCount?: number;
 }
 
-export function DataTablePagination<TData>({ table }: DataTablePaginationProps<TData>) {
+export function DataTablePagination<TData>({ table, totalCount }: DataTablePaginationProps<TData>) {
+  const pages = totalCount ? [10, 20, 30, 40, 50] : [10, 50, 100, 200, 500];
+
   return (
     <div className="flex items-center justify-between px-2">
       <div className="flex-1 text-sm text-muted-foreground">
-        {table.getFilteredSelectedRowModel().rows.length} of {table.getFilteredRowModel().rows.length} row(s) selected.
+        {totalCount
+          ? `${table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}-${Math.min(
+              (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
+              totalCount
+            )} of ${totalCount} rows`
+          : `${table.getFilteredSelectedRowModel().rows.length} of ${
+              table.getFilteredRowModel().rows.length
+            } row(s) selected.`}
       </div>
       <div className="flex items-center space-x-6 lg:space-x-8">
         <div className="flex items-center space-x-2">
@@ -27,7 +37,7 @@ export function DataTablePagination<TData>({ table }: DataTablePaginationProps<T
               <SelectValue placeholder={table.getState().pagination.pageSize} />
             </SelectTrigger>
             <SelectContent side="top">
-              {[10, 50, 100, 200, 500].map((pageSize) => (
+              {pages.map((pageSize) => (
                 <SelectItem key={pageSize} value={`${pageSize}`}>
                   {pageSize}
                 </SelectItem>
@@ -46,7 +56,7 @@ export function DataTablePagination<TData>({ table }: DataTablePaginationProps<T
             disabled={!table.getCanPreviousPage()}
           >
             <span className="sr-only">Go to first page</span>
-            <DoubleArrowLeftIcon className="h-4 w-4" />
+            <ChevronsLeft className="h-4 w-4" />
           </Button>
           <Button
             variant="outline"
@@ -55,7 +65,7 @@ export function DataTablePagination<TData>({ table }: DataTablePaginationProps<T
             disabled={!table.getCanPreviousPage()}
           >
             <span className="sr-only">Go to previous page</span>
-            <ChevronLeftIcon className="h-4 w-4" />
+            <ChevronLeft className="h-4 w-4" />
           </Button>
           <Button
             variant="outline"
@@ -64,7 +74,7 @@ export function DataTablePagination<TData>({ table }: DataTablePaginationProps<T
             disabled={!table.getCanNextPage()}
           >
             <span className="sr-only">Go to next page</span>
-            <ChevronRightIcon className="h-4 w-4" />
+            <ChevronRight className="h-4 w-4" />
           </Button>
           <Button
             variant="outline"
@@ -73,7 +83,7 @@ export function DataTablePagination<TData>({ table }: DataTablePaginationProps<T
             disabled={!table.getCanNextPage()}
           >
             <span className="sr-only">Go to last page</span>
-            <DoubleArrowRightIcon className="h-4 w-4" />
+            <ChevronsRight className="h-4 w-4" />
           </Button>
         </div>
       </div>

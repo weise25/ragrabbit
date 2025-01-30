@@ -43,9 +43,21 @@ export interface DataTableProps<TData, TValue> {
   data: TData[];
   textSearchColumn: string;
   loading: boolean;
+  /**
+   * When sets, server side pagination is enabled.
+   */
+  totalCount?: number;
+  onPaginationChange?: (page: number, pageSize: number) => void;
 }
 
-export function DataTable<TData, TValue>({ columns, data, textSearchColumn, loading }: DataTableProps<TData, TValue>) {
+export function DataTable<TData, TValue>({
+  columns,
+  data,
+  textSearchColumn,
+  loading,
+  totalCount,
+  onPaginationChange,
+}: DataTableProps<TData, TValue>) {
   const [rowSelection, setRowSelection] = React.useState({});
   const defaultVisibility = Object.fromEntries(
     columns.filter((c) => c.defaultVisible === false).map((c: any) => [c.accessorKey, false])
@@ -53,9 +65,18 @@ export function DataTable<TData, TValue>({ columns, data, textSearchColumn, load
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(defaultVisibility);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [{ pageIndex, pageSize }, setPagination] = React.useState({
+    pageIndex: 0,
+    pageSize: 10,
+  });
+
+  const pageCount = React.useMemo(() => {
+    if (!totalCount) return Math.ceil(data.length / pageSize);
+    return Math.ceil(totalCount / pageSize);
+  }, [data, totalCount, pageSize]);
 
   // Loading Skeleton:
-  const tableData = React.useMemo(() => (loading ? Array(10).fill({}) : data), [loading, data]);
+  const tableData = React.useMemo(() => (loading ? Array(pageSize).fill({}) : data), [loading, data, pageSize]);
   const tableColumns = React.useMemo(
     () =>
       loading
@@ -67,21 +88,34 @@ export function DataTable<TData, TValue>({ columns, data, textSearchColumn, load
     [loading, columns]
   );
 
+  React.useEffect(() => {
+    if (onPaginationChange) {
+      onPaginationChange(pageIndex + 1, pageSize);
+    }
+  }, [onPaginationChange, pageIndex, pageSize]);
+
   const table = useReactTable({
     data: tableData,
     columns: tableColumns,
-
+    pageCount,
+    rowCount: totalCount,
     state: {
       sorting,
       columnVisibility,
       rowSelection,
       columnFilters,
+      pagination: {
+        pageIndex,
+        pageSize,
+      },
     },
     enableRowSelection: true,
+    manualPagination: Boolean(onPaginationChange),
     onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
+    onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -129,7 +163,7 @@ export function DataTable<TData, TValue>({ columns, data, textSearchColumn, load
           </TableBody>
         </Table>
       </div>
-      <DataTablePagination table={table} />
+      <DataTablePagination table={table} totalCount={totalCount} />
     </div>
   );
 }

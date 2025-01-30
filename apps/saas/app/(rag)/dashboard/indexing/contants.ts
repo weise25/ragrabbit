@@ -6,7 +6,7 @@ import {
   HomeIcon,
   StopwatchIcon,
 } from "@radix-ui/react-icons";
-import { FilesIcon, WaypointsIcon } from "@repo/design/base/icons";
+import { FilesIcon, HistoryIcon, WaypointsIcon } from "@repo/design/base/icons";
 import { IndexStatus } from "@repo/db/schema";
 import { cellConfig } from "@repo/design/components/table/utils/default-cells";
 
@@ -42,6 +42,16 @@ export const statuses: cellConfig[] = [
     label: "Error",
     icon: CrossCircledIcon,
     className: "text-red-500",
+  },
+  {
+    value: IndexStatus.OUTDATED,
+    label: "Outdated",
+    icon: HistoryIcon,
+  },
+  {
+    value: IndexStatus.PENDING_CLEAN,
+    label: "Crawling",
+    icon: WaypointsIcon,
   },
 ];
 

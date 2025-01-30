@@ -5,10 +5,9 @@ import { EasyTooltip } from "@repo/design/components/tooltip/tooltip";
 import { cn } from "@repo/design/lib/utils";
 import { Button, buttonVariants } from "@repo/design/shadcn/button";
 import { useAction } from "next-safe-action/hooks";
-import { useEffect, useState } from "react";
-import { getPendingCountAction, runProcessingNowAction } from "../actions";
-import { revalidatePath } from "next/cache";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { getPendingCountAction, runProcessingNowAction } from "../actions.processing";
 import { useIndexes } from "../providers/indexes-provider";
 
 export default function FrontendJobProcessor() {
@@ -25,30 +24,34 @@ export default function FrontendJobProcessor() {
   const router = useRouter();
   const { patch: patchIndex } = useIndexes();
 
-  // Exectute every 3 seconds, goes to sleep if no jobs are pending after 60 seconds
+  async function executeJob(wakeUp?: boolean) {
+    // Avoid executing a call if still doing the previous:
+    if (isExecutingProcessing) return;
+    if (!wakeUp && isExecutingGetPendingCount) return;
+    // Don't do any call if it goes to sleep to not overload the server:
+    if (sleep > sleepAfter) return;
+
+    let res;
+    const currentPauseState = wakeUp ?? isPaused;
+    if (currentPauseState) {
+      res = await executeGetPendingCount({});
+    } else {
+      res = await executeProcessing({});
+      // If we processed an item, refresh the page data
+      if (res?.data?.processedIndexId) {
+        await patchIndex([{ id: res.data.processedIndexId, status: "DONE" }]);
+      }
+    }
+
+    setPendingCount(res.data.count);
+    if (res.data.count === 0) {
+      setSleep(sleep + 1);
+    }
+  }
+
+  // Execute every 3 seconds, goes to sleep if no jobs are pending after 60 seconds
   useEffect(() => {
-    const interval = setInterval(async () => {
-      // Avoid executing a call if still doing the previous:
-      if (isExecutingGetPendingCount || isExecutingProcessing) return;
-      // Don't do any call if it goes to sleep to not overload the server:
-      if (sleep > sleepAfter) return;
-
-      let res;
-      if (isPaused) {
-        res = await executeGetPendingCount({});
-      } else {
-        res = await executeProcessing({});
-        // If we processed an item, refresh the page data
-        if (res?.data?.processedIndexId) {
-          patchIndex([{ id: res.data.processedIndexId, status: "DONE" }]);
-        }
-      }
-
-      setPendingCount(res.data.count);
-      if (res.data.count === 0) {
-        setSleep(sleep + 1);
-      }
-    }, pollingInterval);
+    const interval = setInterval(executeJob, pollingInterval);
     return () => clearInterval(interval);
   }, [
     sleep,
@@ -72,14 +75,16 @@ export default function FrontendJobProcessor() {
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, [sleep]);
 
-  function wakeUp() {
+  async function wakeUp() {
     setSleep(0);
-    // Also resume processing
+    // Resume processing
     setIsPaused(false);
+    // Immediately execute processing with forced pause state
+    await executeJob(false);
   }
 
   const isSleeping = sleep > sleepAfter;
-  const isExecuting = !isPaused && (isExecutingGetPendingCount || isExecutingProcessing);
+  const isExecuting = !isPaused && isExecutingProcessing;
   return (
     <>
       <EasyTooltip

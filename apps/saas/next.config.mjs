@@ -2,6 +2,14 @@ import("./env.mjs");
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  functions: {
+    // Jobs processing functions can take a long time:
+    "app/(rag)/**/*.processing.ts": {
+      maxDuration: 30,
+    },
+  },
+
+  // Build fixes for various dependencies issues on Vercel:
   bundlePagesRouterDependencies: true,
   serverExternalPackages: [
     /* for llamaindex */

@@ -5,15 +5,19 @@ import { createContext, useContext, useState } from "react";
 
 export interface ChatContextType {
   chat: ReturnType<typeof useChat>;
+  /** When using the agentic mode with tools */
   agentMode: boolean;
   welcomeMessage: string;
   suggestedQueries: string[];
   logoUrl: string;
+  /** When inside a modal */
+  modalMode: boolean;
   setAgentMode: (mode: boolean) => void;
   setWelcomeMessage: (message: string) => void;
   setSuggestedQueries: (queries: string[]) => void;
   setLogoUrl: (url: string) => void;
   setChat: (chat: ReturnType<typeof useChat>) => void;
+  setModalMode: (mode: boolean) => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -37,6 +41,7 @@ function ChatConfigProvider({ children, initialData = {} }: ChatConfigProviderPr
   const [suggestedQueries, setSuggestedQueries] = useState<string[]>(initialData.suggestedQueries ?? []);
   const [logoUrl, setLogoUrl] = useState(initialData.logoUrl ?? "");
   const [chat, setChat] = useState<ReturnType<typeof useChat> | undefined>(undefined);
+  const [modalMode, setModalMode] = useState(initialData.modalMode ?? false);
 
   const value = {
     agentMode,
@@ -49,6 +54,8 @@ function ChatConfigProvider({ children, initialData = {} }: ChatConfigProviderPr
     setLogoUrl,
     chat,
     setChat,
+    modalMode,
+    setModalMode,
   };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

@@ -5,9 +5,9 @@ import { codeBlock } from "common-tags";
 import { z } from "zod";
 import { zodResponseFormat } from "openai/helpers/zod.mjs";
 import { logger } from "@repo/logger";
-import { getEncoding } from "@langchain/core/utils/tiktoken";
 import { env } from "../env.mjs";
 import { RagMetadata } from "./metadata.type";
+import { countTokens } from "./tokens";
 
 const log = logger.child({
   component: "Llamaindex",
@@ -75,15 +75,13 @@ export async function extractMetadata(text: string): Promise<Partial<RagMetadata
 
   const parsed = JSON.parse(message.content);
 
-  const encoding = await getEncoding("cl100k_base");
-  const tokens = encoding.encode(text).length;
   return {
     pageTitle: parsed.title,
     pageDescription: parsed.description,
     keywords: parsed.keywords || [],
     questions: parsed.questions || [],
     entities: parsed.entities || [],
-    tokens,
+    tokens: await countTokens(text),
   };
 }
 

@@ -1,13 +1,25 @@
 import { z } from "zod";
 
-export const addIndexSchema = z.object({
-  urls: z
-    .array(
-      z.object({
-        value: z.string().url(),
-      })
-    )
-    .min(1),
+export const addIndexSchema = z
+  .object({
+    urls: z
+      .array(
+        z.object({
+          value: z.string().url(),
+        })
+      )
+      .min(1)
+      .optional(),
+    url: z.string().url().optional(),
+  })
+  .refine((data) => data.urls || data.url, {
+    message: "Either urls or url must be provided",
+  });
+
+export const editSingleIndexSchema = z.object({
+  id: z.number(),
+  url: z.string().url(),
+  clearFoundFrom: z.boolean().optional(),
 });
 
 export const removeIndexSchema = z.object({
@@ -32,10 +44,21 @@ export const runIndexAllSchema = z.object({
 
 export const addCrawlSchema = z.object({
   url: z.string().url(),
-  isSitemap: z.boolean().optional(),
+  isSitemap: z.boolean(),
   scrapeOptions: z.object({
-    allowSubdomains: z.boolean().optional(),
-    maxDepth: z.coerce.number().int().optional(),
-    stripQueries: z.string().optional(),
+    allowSubdomains: z.boolean(),
+    maxDepth: z.coerce.number(),
+    stripQueries: z.string(),
+  }),
+});
+
+export const updateCrawlSchema = z.object({
+  id: z.number(),
+  url: z.string().url(),
+  isSitemap: z.boolean(),
+  scrapeOptions: z.object({
+    allowSubdomains: z.boolean(),
+    maxDepth: z.coerce.number(),
+    stripQueries: z.string(),
   }),
 });

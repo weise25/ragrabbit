@@ -1,6 +1,6 @@
 import { UserError } from "@repo/core";
 import db from "@repo/db";
-import { and, eq, not } from "@repo/db/drizzle";
+import { and, eq, inArray, not } from "@repo/db/drizzle";
 import { Indexed, indexedContentTable, indexedTable, llamaindexEmbedding, normalizeUrl } from "@repo/db/schema";
 import { logger } from "@repo/logger";
 import { scrapeUrl } from "./scraping";
@@ -29,6 +29,16 @@ export async function scrapeDbItem(indexedId: number) {
       indexedAt: new Date(),
     } as Indexed)
     .where(eq(indexedTable.id, indexed.id));
+
+  if (indexed.doCrawl) {
+    // Mark all child pages as outdated to be re-processed:
+    await db
+      .update(indexedTable)
+      .set({
+        status: "OUTDATED",
+      } as Indexed)
+      .where(eq(indexedTable.foundFromIndexId, indexed.id));
+  }
 
   //Fetch page content:
   const scrapeOptions = indexed.foundFromIndex?.scrapeOptions || indexed.scrapeOptions || {};
@@ -81,8 +91,6 @@ export async function scrapeDbItem(indexedId: number) {
     return skipIndexed(indexed, "Duplicated content from: " + existing.url);
   }
 
-  // TODO: use LLM to fix formatting and metadata
-
   logger.debug("Created Markdown content", { bytes: content.length });
 
   await db
@@ -128,19 +136,38 @@ export async function saveNewPages(links: string[], indexed: Indexed & { foundFr
   let newPages = [];
 
   logger.info({ links: links.length, depth: indexed.depth }, "Found new links to scrape");
+
+  // remove duplicates links by normalizedUrl:
+  const uniqueLinks = links
+    .map((l) => ({ url: l, normalizedUrl: normalizeUrl(l) }))
+    .filter((l, index, self) => index === self.findIndex((t) => t.normalizedUrl === l.normalizedUrl));
+
   newPages = await db
     .insert(indexedTable)
     .values(
-      links.map((link) => ({
-        url: link,
-        normalizedUrl: normalizeUrl(link),
+      uniqueLinks.map((link) => ({
+        url: link.url,
+        normalizedUrl: link.normalizedUrl,
         organizationId: originIndexed.organizationId,
         foundFromIndexId: originIndexed.id,
         depth: indexed.depth + 1,
         status: "PENDING",
+        updatedAt: new Date(),
       }))
     )
-    .onConflictDoNothing()
+    .onConflictDoUpdate({
+      target: [indexedTable.organizationId, indexedTable.normalizedUrl],
+      set: {
+        foundFromIndexId: originIndexed.id,
+        depth: indexed.depth + 1,
+        status: "PENDING",
+        updatedAt: new Date(),
+      } as Partial<Indexed>,
+      setWhere: and(
+        eq(indexedTable.foundFromIndexId, originIndexed.foundFromIndexId),
+        eq(indexedTable.status, "OUTDATED")
+      ),
+    })
     .returning();
   return newPages;
 }

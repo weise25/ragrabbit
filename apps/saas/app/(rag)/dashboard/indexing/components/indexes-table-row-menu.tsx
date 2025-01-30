@@ -18,6 +18,7 @@ import {
 import Link from "next/link";
 import { removeManyIndexesAction } from "../actions";
 import { useIndexes } from "../providers/indexes-provider";
+import EditButton from "./edit-button";
 
 interface DataTableRowActionsProps<TData> {
   row: Row<TData>;
@@ -59,6 +60,9 @@ export default function IndexesTableRowMenu<TData>({ row }: DataTableRowActionsP
               <ExternalLink className="mr-2 h-4 w-4" />
               Visit
             </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <EditButton index={index} variant="ghost" className="w-full justify-start" />
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem className="" onClick={handleDelete}>

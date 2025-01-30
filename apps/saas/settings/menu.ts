@@ -21,12 +21,13 @@ export const sidebarMenu: MenuGroup[] = [
       },
 
       {
-        href: "/dashboard/llm",
-        label: "LLM.txt",
+        href: "/dashboard/llms",
+        label: "LLMs.txt",
         icon: FileText,
       },
     ],
   },
+
   {
     groupLabel: "RAG",
     menus: [
@@ -34,6 +35,11 @@ export const sidebarMenu: MenuGroup[] = [
         href: "/dashboard/indexing",
         label: "Indexing",
         icon: LayoutGrid,
+      },
+      {
+        href: "/dashboard/chats",
+        label: "Chats",
+        icon: MessageSquare,
       },
       {
         href: "/dashboard/widget",

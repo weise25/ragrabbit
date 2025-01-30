@@ -22,11 +22,22 @@ export enum IndexStatus {
   PROCESSING = "PROCESSING",
   SCRAPED = "SCRAPED",
   DONE = "DONE",
+  PENDING_CLEAN = "PENDING_CLEAN",
   SKIPPED = "SKIPPED",
   ERROR = "ERROR",
+  OUTDATED = "OUTDATED",
 }
 
-export const indexStatusEnum = pgEnum("index_status", ["PENDING", "PROCESSING", "SCRAPED", "DONE", "SKIPPED", "ERROR"]);
+export const indexStatusEnum = pgEnum("index_status", [
+  "PENDING",
+  "PROCESSING",
+  "SCRAPED",
+  "DONE",
+  "PENDING_CLEAN", // Must be after DONE to be processed after all other jobs complete
+  "SKIPPED",
+  "ERROR",
+  "OUTDATED",
+]);
 
 export const indexedTable = pgTable(
   "indexed",
@@ -143,7 +154,19 @@ export const llamaindexEmbedding = pgTable(
     externalId: varchar("external_id"), // NB: This is not used by llamaindex
     collection: varchar(),
     document: text(),
-    metadata: jsonb().$type<{ contentId?: string; organizationId?: number }>().default({}),
+    metadata: jsonb()
+      .$type<{
+        contentId?: string;
+        organizationId?: number;
+        pageTitle?: string;
+        pageDescription?: string;
+        pageUrl?: string;
+        pageKeywords?: string[];
+        pageQuestions?: string[];
+        pageEntities?: { name: string; type: string }[];
+        tokens?: number;
+      }>()
+      .default({}),
     // Duplicate contentId from metadata to allow for cascade FK deletion:
     contentId: integer()
       .generatedAlwaysAs(sql`(metadata ->> 'contentId')::int`)
@@ -162,6 +185,17 @@ export const llamaindexEmbedding = pgTable(
       organizationId: index("idx_llamaindex_embedding_organization_id").on(
         extraJsonFieldDeep(table.metadata, ["organizationId"])
       ),
+      searchIndex: index("search_index").using(
+        "gin",
+        sql`(
+          setweight(to_tsvector('english', ${table.metadata} ->> 'pageUrl'), 'A') ||
+          setweight(to_tsvector('english', ${table.metadata} ->> 'pageTitle'), 'B') ||
+          setweight(to_tsvector('english', ${table.metadata} ->> 'pageDescription'), 'C') ||
+          setweight(to_tsvector('english', ${table.document}), 'D')
+        )`
+      ),
+      //TODO: add support for pg_trgm on dev postgres
+      //searchIndexTsquery: index("search_index_tsquery").using("gin", sql`document gin_trgm_ops`),
     };
   }
 );

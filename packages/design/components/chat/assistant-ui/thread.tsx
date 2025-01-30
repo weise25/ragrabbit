@@ -11,6 +11,8 @@ import {
   useThread,
 } from "@assistant-ui/react";
 import type { FC } from "react";
+import { useState, useCallback } from "react";
+import React from "react";
 
 import { cn } from "@repo/design/lib/utils";
 import { Avatar, AvatarFallback } from "@repo/design/shadcn/avatar";
@@ -33,13 +35,28 @@ import { useChatProvider } from "../chat-provider";
 import { SourceBoxListStory } from "../source-box.stories";
 import { Source, SourceBoxList } from "../source-box";
 import { Skeleton } from "@repo/design/shadcn/skeleton";
+import { SearchResults } from "../search-results";
+import { useDebounce } from "use-debounce";
 
 export const MyThread: FC = () => {
   const { threads } = useAssistantRuntime();
+  const { modalMode } = useChatConfig();
+  const [hideWelcome, setHideWelcome] = useState(false);
+
+  const doHideWelcome = modalMode && hideWelcome;
+
   return (
-    <ThreadPrimitive.Root className="bg-background h-full w-full">
-      <ThreadPrimitive.Viewport className="flex h-full flex-col items-center overflow-y-scroll scroll-smooth bg-inherit px-4 pt-8">
-        <MyThreadWelcome />
+    <ThreadPrimitive.Root
+      className={cn(
+        "bg-background h-full w-full min-h-[0] transition-all duration-700 ease-in-out",
+        doHideWelcome && "min-h-[100dvh]",
+        modalMode && "pt-4 pb-8"
+      )}
+    >
+      <ThreadPrimitive.Viewport className="flex h-full flex-col items-center overflow-y-scroll scroll-smooth bg-inherit px-4">
+        <div className={cn(doHideWelcome && "invisible", !modalMode && "pt-8")}>
+          <MyThreadWelcome hideWelcome={doHideWelcome} />
+        </div>
 
         <ThreadPrimitive.Messages
           components={{
@@ -60,7 +77,7 @@ export const MyThread: FC = () => {
               </Button>
             </ThreadPrimitive.If>
           </ThreadPrimitive.If>
-          <MyComposer />
+          <MyComposer setActive={setHideWelcome} />
           <MySuggestedPromptsInitial />
           <MySuggestedPrompts />
         </div>
@@ -120,12 +137,17 @@ const MyThreadScrollToBottom: FC = () => {
   );
 };
 
-const MyThreadWelcome: FC = () => {
+const MyThreadWelcome: FC<{ hideWelcome: boolean }> = ({ hideWelcome }) => {
   const chatConfig = useChatConfig();
 
   return (
-    <ThreadPrimitive.Empty>
-      <div className="flex flex-grow flex-col items-center justify-center">
+    <div
+      className={cn(
+        "flex flex-col items-center justify-center transition-all duration-300 ease-in-out",
+        hideWelcome ? "max-h-0 mb-0 opacity-0 scale-95 pointer-events-none" : "max-h-[200px] mb-8 opacity-100 scale-100"
+      )}
+    >
+      <div className="flex flex-col items-center">
         {chatConfig.logoUrl && <Image src={chatConfig.logoUrl} alt="Logo" width={40} height={40} />}
         {!chatConfig.logoUrl && (
           <Avatar>
@@ -134,40 +156,108 @@ const MyThreadWelcome: FC = () => {
         )}
         <p className="mt-4 font-medium">{chatConfig.welcomeMessage || "What do you want to know?"}</p>
       </div>
-    </ThreadPrimitive.Empty>
+    </div>
   );
 };
 
-export const MyComposer: FC = () => {
+interface MyComposerProps {
+  setActive: (focus: boolean) => void;
+}
+
+export const MyComposer: FC<MyComposerProps> = ({ setActive }) => {
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  // NB: searchValue is used only for the search results, the AI chat stores internally in ComposerPrimitive.Input
+  const [searchValue, setSearchValue] = useState("");
+  const [debouncedValue] = useDebounce(searchValue, 200);
+
+  const handleSearch = useCallback(async (query: string) => {
+    if (query.length < 3) {
+      setSearchResults([]);
+      return;
+    }
+
+    try {
+      const response = await fetch("/chat/ui/api/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query }),
+      });
+      const data = await response.json();
+      setSearchResults(data.results || []);
+    } catch (error) {
+      console.error("Search error:", error);
+      setSearchResults([]);
+    }
+  }, []);
+
+  // Effect to trigger search when debounced value changes
+  React.useEffect(() => {
+    handleSearch(debouncedValue);
+  }, [debouncedValue, handleSearch]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setSearchValue(e.target.value);
+    setActive(true);
+  };
+
+  const handleSubmit = () => {
+    setSearchResults([]);
+    setSearchValue("");
+  };
+
   return (
-    <ComposerPrimitive.Root className="focus-within:border-aui-ring/20 flex w-full flex-wrap items-end rounded-lg border bg-inherit px-2.5 shadow-sm transition-colors ease-in">
-      <ComposerPrimitive.Input
-        autoFocus
-        placeholder="Ask a question..."
-        rows={1}
-        className="placeholder:text-muted-foreground max-h-40 flex-grow resize-none border-none bg-transparent px-2 py-4 text-sm outline-none focus:ring-0 disabled:cursor-not-allowed"
-      />
-      <ThreadPrimitive.If running={false}>
-        {/* TODO: Usefull for agentic behavior or switch to search/answer mode */}
-        {/* <AgentModeSwitch /> */}
-        <ComposerPrimitive.Send asChild>
-          <TooltipIconButton tooltip="Send" variant="default" className="my-2.5 size-8 p-2 transition-opacity ease-in">
-            <SendHorizontalIcon />
-          </TooltipIconButton>
-        </ComposerPrimitive.Send>
+    <>
+      <ComposerPrimitive.Root className="focus-within:border-aui-ring/20 flex w-full flex-wrap items-end rounded-lg border bg-inherit px-2.5 shadow-sm transition-colors ease-in">
+        <ComposerPrimitive.Input
+          autoFocus
+          placeholder="Ask a question or search"
+          rows={1}
+          onChange={handleInputChange}
+          onClick={() => setActive(true)}
+          className="placeholder:text-muted-foreground max-h-40 flex-grow resize-none border-none bg-transparent px-2 py-4 text-sm outline-none focus:ring-0 disabled:cursor-not-allowed"
+        />
+        <ThreadPrimitive.If running={false}>
+          <ComposerPrimitive.Send asChild onClick={handleSubmit}>
+            <TooltipIconButton
+              tooltip="Send"
+              variant="default"
+              className="my-2.5 size-8 p-2 transition-opacity ease-in"
+            >
+              <SendHorizontalIcon />
+            </TooltipIconButton>
+          </ComposerPrimitive.Send>
+        </ThreadPrimitive.If>
+        <ThreadPrimitive.If running>
+          <ComposerPrimitive.Cancel asChild>
+            <TooltipIconButton
+              tooltip="Cancel"
+              variant="default"
+              className="my-2.5 size-8 p-2 transition-opacity ease-in"
+            >
+              <CircleStopIcon />
+            </TooltipIconButton>
+          </ComposerPrimitive.Cancel>
+        </ThreadPrimitive.If>
+      </ComposerPrimitive.Root>
+      <ThreadPrimitive.If empty>
+        {searchValue && searchResults.length > 0 && (
+          <>
+            <div className="w-full text-sm text-muted-foreground mt-2 ml-6 flex items-center">
+              Submit to ask AI
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M15.5 9.00001V15H8.5M8.5 15L9.5 14M8.5 15L9.5 16M13 5H17.5C18.0523 5 18.5 5.44772 18.5 6V18C18.5 18.5523 18.0523 19 17.5 19H6.5C5.94772 19 5.5 18.5523 5.5 18V12C5.5 11.4477 5.94772 11 6.5 11H12V6C12 5.44771 12.4477 5 13 5Z"
+                  stroke="#464455"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+          </>
+        )}
+        <SearchResults results={searchResults} />
       </ThreadPrimitive.If>
-      <ThreadPrimitive.If running>
-        <ComposerPrimitive.Cancel asChild>
-          <TooltipIconButton
-            tooltip="Cancel"
-            variant="default"
-            className="my-2.5 size-8 p-2 transition-opacity ease-in"
-          >
-            <CircleStopIcon />
-          </TooltipIconButton>
-        </ComposerPrimitive.Cancel>
-      </ThreadPrimitive.If>
-    </ComposerPrimitive.Root>
+    </>
   );
 };
 
