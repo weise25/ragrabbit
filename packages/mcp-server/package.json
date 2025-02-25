@@ -1,6 +1,6 @@
 {
   "name": "@ragrabbit/mcp",
-  "version": "0.0.3-beta.0",
+  "version": "0.1.0",
   "description": "A MCP server to access any documentation indexed with RagRabbit",
   "keywords": [],
   "author": "Marco D'Alia",
