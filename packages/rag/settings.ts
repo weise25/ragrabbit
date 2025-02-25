@@ -1,5 +1,7 @@
-import { Anthropic, Groq, OpenAI, OpenAIEmbedding, Settings } from "llamaindex";
-import { HuggingFaceEmbedding } from "llamaindex";
+import { OpenAIEmbedding, Settings } from "llamaindex";
+import { OpenAI } from "@llamaindex/openai";
+import { Anthropic } from "@llamaindex/anthropic";
+import { Groq } from "@llamaindex/groq";
 import { env } from "./env.mjs";
 
 export enum LLMEnum {
@@ -55,9 +57,12 @@ if (env.LLM_MODEL === "groq") {
 }
 
 const embeddingModel = EmbeddingModel[env.EMBEDDING_MODEL];
+
 if (embeddingModel === EmbeddingModel.openai) {
   Settings.embedModel = new OpenAIEmbedding();
 } else {
+  // Allows to use local models for embeddings:
+  const { HuggingFaceEmbedding } = await import("@llamaindex/huggingface");
   Settings.embedModel = new HuggingFaceEmbedding({
     modelType: embeddingModel,
   });

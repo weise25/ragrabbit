@@ -1,17 +1,9 @@
+import { PGVectorStore } from "@llamaindex/postgres";
 import db, { pool } from "@repo/db";
 import { eq } from "@repo/db/drizzle";
 import { EmbeddingDimensions, llamaindexEmbedding } from "@repo/db/schema";
 import { logger } from "@repo/logger";
-import {
-  Document,
-  IngestionPipeline,
-  KeywordExtractor,
-  SentenceSplitter,
-  Settings,
-  SummaryExtractor,
-  QuestionsAnsweredExtractor,
-} from "llamaindex";
-import { PGVectorStore } from "llamaindex/vector-store/PGVectorStore";
+import { Document, IngestionPipeline, SentenceSplitter, Settings } from "llamaindex";
 import { env } from "../env.mjs";
 import { EmbeddingModel } from "../settings";
 import { extractMetadata } from "./metadata.extract";
