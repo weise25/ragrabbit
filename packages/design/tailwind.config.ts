@@ -12,12 +12,7 @@ const config: Config = {
     "./lib/**/*.{js,ts,jsx,tsx,mdx}",
     "./shadcn/**/*.{js,ts,jsx,tsx,mdx}",
   ],
-  plugins: [
-    require("tailwindcss-animate"),
-    require("@tailwindcss/typography"),
-    require("@assistant-ui/react/tailwindcss")({ shadcn: true }),
-    require("@assistant-ui/react-markdown/tailwindcss"),
-  ],
+  plugins: [require("tailwindcss-animate"), require("@tailwindcss/typography")],
   theme: {
     extend: {
       fontFamily: {

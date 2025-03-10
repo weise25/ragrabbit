@@ -20,21 +20,24 @@
   },
   "scripts": {
     "build": "tsc && shx chmod +x dist/*.js",
-    "prepare": "npm run build",
     "dev:run": "node dist/index.js http://localhost:3000 RagRabbit",
     "dev:inspector": "SERVER_PORT=9000 npx -y @modelcontextprotocol/inspector pnpm dev:run",
     "dev": "tsc-watch --onSuccess \"pnpm dev:inspector\"",
-    "watch": "tsc-watch"
+    "watch": "tsc-watch",
+    "version:patch": "npm version minor",
+    "version:beta": "npm version prerelease --preid=beta",
+    "pre:publish": "npm run build",
+    "publish": "pnpm publish --no-git-checks"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.5.0",
     "@types/node-fetch": "^2.6.12",
     "node-fetch": "^3.3.2",
-    "zod": "^3.24.1"
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
-    "@types/node": "^22",
+    "@types/node": "^22.13.9",
     "cross-env": "^7.0.3",
     "shx": "^0.3.4",
     "tsc-watch": "^6.2.1"

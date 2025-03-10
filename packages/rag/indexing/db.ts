@@ -33,6 +33,7 @@ export async function generateEmbeddingsDb(indexedId: number) {
     title: indexed.title,
     description: indexed.description,
     organizationId: indexed.organizationId,
+    metadata: indexed.metadata,
   });
 
   logger.info("Generated embeddings", { nodeIds });

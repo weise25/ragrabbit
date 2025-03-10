@@ -3,9 +3,11 @@ import { logger } from "@repo/logger";
 import * as cheerio from "cheerio";
 import * as contentTypeHelper from "content-type";
 import { NodeHtmlMarkdown } from "node-html-markdown";
+import { RagMetadata } from "@repo/db/schema";
+import { defaultATransformer } from "./node-markdown.override";
+import { reformatContentLLM } from "./scraping.llm";
 
-const CHUNK_SIZE = 1024;
-const MAX_CHUNKS = 20;
+const MAX_SCRAPE_SIZE = process.env.MAX_SCRAPE_SIZE ? parseInt(process.env.MAX_SCRAPE_SIZE) : 1024 * 200;
 
 export async function scrapeUrl(
   url: string,
@@ -16,7 +18,10 @@ export async function scrapeUrl(
     stripFooter?: boolean;
     stripQueries?: string;
     allowSubdomains?: boolean;
+    allowLinksRegexp?: string;
+    excludeLinksRegexp?: string;
     supportedContentTypes?: string[];
+    transformStrategy?: "llm" | "markdown";
   }
 ) {
   options = {
@@ -25,6 +30,7 @@ export async function scrapeUrl(
     stripHeader: true,
     stripFooter: true,
     allowSubdomains: false,
+    transformStrategy: "llm",
     stripQueries: "aside, nav",
     supportedContentTypes: ["text/html", "application/xhtml+xml", "text/plain", "text/markdown", "text/x-markdown"],
     ...options,
@@ -39,7 +45,7 @@ export async function scrapeUrl(
     redirectedUrl = response.url;
   }
   if (response.status !== 200) {
-    throw new UserError("Failed to fetch, error from page: " + response.statusText + " status: " + response.status);
+    throw new UserError("Failed to fetch, error from server: " + response.statusText + " status: " + response.status);
   }
 
   const contentType = contentTypeHelper.parse(response.headers.get("content-type"));
@@ -50,6 +56,7 @@ export async function scrapeUrl(
 
   const $ = cheerio.load(html);
   const title = $("title").first().text();
+  const description = $("meta[name='description']").first().attr("content") || "";
   logger.debug("Scraped HTML for page", { title });
 
   const canonicalUrl = $("link[rel='canonical']").first().attr("href") || redirectedUrl;
@@ -74,6 +81,20 @@ export async function scrapeUrl(
       return;
     }
 
+    if (options.allowLinksRegexp) {
+      const allowLinksRegexp = new RegExp(options.allowLinksRegexp);
+      if (!allowLinksRegexp.test(urlHref.toString())) {
+        return;
+      }
+    }
+
+    if (options.excludeLinksRegexp) {
+      const excludeLinksRegexp = new RegExp(options.excludeLinksRegexp);
+      if (excludeLinksRegexp.test(urlHref.toString())) {
+        return;
+      }
+    }
+
     // Skip image file extensions
     const ext = urlHref.pathname.split(".").pop()?.toLowerCase();
     if (ext && ["jpg", "jpeg", "png", "gif", "svg", "webp", "ico"].includes(ext)) {
@@ -94,9 +115,21 @@ export async function scrapeUrl(
       const href = $(el).attr("href");
       if (!href || !URL.canParse(href, url)) return;
       const urlHref = new URL(href, urlParts);
+
+      // Absolute links to same domain become relative:
       if (urlHref.hostname.replace("www.", "") == hostname) {
         const relativeUrl = urlHref.pathname + urlHref.search + urlHref.hash;
         $(el).attr("href", relativeUrl);
+      }
+
+      // Strip anchor links to the same page:
+      if (
+        urlHref.hostname.replace("www.", "") == hostname &&
+        urlHref.pathname == urlParts.pathname &&
+        urlHref.search == urlParts.search &&
+        urlHref.hash
+      ) {
+        $(el).attr("href", "");
       }
     });
   }
@@ -111,10 +144,9 @@ export async function scrapeUrl(
       if (urlSrc.hostname.replace("www.", "") == hostname) {
         const relativeUrl = urlSrc.pathname.split("/").slice(-1)[0] + urlSrc.search + urlSrc.hash;
         $(el).attr("src", relativeUrl);
-        if (!$(el).attr("alt")) {
-          console.log("#ALT", $(el).attr("alt"));
-          $(el).attr("alt", "Image");
-        }
+      }
+      if (!$(el).attr("alt")) {
+        $(el).attr("alt", "Image");
       }
     });
   }
@@ -129,25 +161,44 @@ export async function scrapeUrl(
     $(options.stripQueries).remove();
   }
 
+  $("script, style, noscript").remove();
+
   const body = $("body").html()?.toString();
   if (!body) {
     throw new UserError("No body content found in page");
   }
 
-  // Translate to markdown:
-  let content = NodeHtmlMarkdown.translate(body, {
-    ignore: ["script", "style", "noscript", "svg", "img"],
-    keepDataImages: false,
-    useLinkReferenceDefinitions: false,
-    useInlineLinks: false,
-    codeBlockStyle: "fenced",
-  });
-
-  const description = $("meta[name='description']").first().attr("content") || "";
-  if (content.length > CHUNK_SIZE * MAX_CHUNKS) {
-    logger.warn("Content too large, truncating", { bytes: content.length, maxBytes: CHUNK_SIZE * MAX_CHUNKS });
-    content = content.slice(0, CHUNK_SIZE * MAX_CHUNKS);
+  let content: string;
+  let metadata: Partial<RagMetadata> = {};
+  if (options.transformStrategy == "markdown") {
+    // Translate to markdown:
+    content = NodeHtmlMarkdown.translate(
+      body,
+      {
+        ignore: ["script", "style", "noscript", "svg", "img"],
+        keepDataImages: false,
+        useLinkReferenceDefinitions: false,
+        useInlineLinks: false,
+        codeBlockStyle: "fenced",
+      },
+      {
+        // Had to copy the transformer from node-html-markdown just to add a .trim() to the <a>:
+        ...defaultATransformer,
+      }
+    );
+  } else {
+    const result = await reformatContentLLM(body, url, title);
+    if (!result) {
+      throw new UserError("Failed to reformat content");
+    }
+    content = result.content;
+    metadata = result.metadata;
   }
 
-  return { title, content, description, links, canonicalUrl, contentType: contentType.type };
+  if (content.length > MAX_SCRAPE_SIZE) {
+    logger.warn("Content too large, truncating", { bytes: content.length, maxBytes: MAX_SCRAPE_SIZE });
+    content = content.slice(0, MAX_SCRAPE_SIZE);
+  }
+
+  return { title, content, description, links, canonicalUrl, contentType: contentType.type, metadata };
 }

@@ -2,16 +2,12 @@
 
 import { CodeHeaderProps, MarkdownTextPrimitive, useIsMarkdownCodeBlock } from "@assistant-ui/react-markdown";
 import remarkGfm from "remark-gfm";
-import rehypeKatex from "rehype-katex";
-import remarkMath from "remark-math";
 import { FC, memo, useState } from "react";
 import { CheckIcon, CopyIcon } from "lucide-react";
 
 import { TooltipIconButton } from "./tooltip-icon-button";
 import { SyntaxHighlighter } from "./syntax-highlighter";
 import { cn } from "@repo/design/lib/utils";
-
-import "katex/dist/katex.min.css";
 
 export const CodeHeader: FC<CodeHeaderProps> = ({ language, code }) => {
   const { isCopied, copyToClipboard } = useCopyToClipboard();
@@ -32,8 +28,8 @@ export const CodeHeader: FC<CodeHeaderProps> = ({ language, code }) => {
 };
 
 export const markdownOpts = {
-  remarkPlugins: [remarkGfm, remarkMath],
-  rehypePlugins: [rehypeKatex],
+  remarkPlugins: [remarkGfm],
+  rehypePlugins: [],
   components: {
     h1: ({ node, className, ...props }) => (
       <h1 className={cn("mb-8 scroll-m-20 text-4xl font-extrabold tracking-tight last:mb-0", className)} {...props} />

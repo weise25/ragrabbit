@@ -46,6 +46,12 @@ export async function scrapeDbItem(indexedId: number) {
   let { title, content, description, links, canonicalUrl, unsuportedContent, contentType } = scrapeData;
 
   canonicalUrl = canonicalUrl ? normalizeUrl(canonicalUrl, indexed.url) : undefined;
+  if (!title) {
+    title = scrapeData.metadata.pageTitle;
+  }
+  if (!description) {
+    description = scrapeData.metadata.pageDescription;
+  }
 
   if (unsuportedContent) {
     logger.info("Unsupported content type", { contentType: scrapeData.contentType });
@@ -106,6 +112,7 @@ export async function scrapeDbItem(indexedId: number) {
       hash,
       ...(indexed.canonicalUrl ? { canonicalUrl: canonicalUrl } : {}),
       status: "SCRAPED",
+      metadata: scrapeData.metadata,
       indexedAt: new Date(),
     } as Indexed)
     .where(eq(indexedTable.id, indexed.id));

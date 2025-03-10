@@ -1,6 +1,6 @@
 # RagRabbit
 
-Site AI Search and LLM.txt that crawls your site. Easy to fork an customize and deployed on Vercel.
+Site AI Search, LLMs.txt, MCP Server that crawls your site. Easy to fork and customize and deployed on Vercel.
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fmadarco%2Fragrabbit&env=OPENAI_API_KEY,AUTH_USERNAME,AUTH_PASSWORD,AUTH_SECRET&envDescription=Get%20an%20OpenAI%20Api%20Key%20and%20set%20AUTH_USERNAME%20and%20AUTH_PASSWORD%20to%20the%20desired%20credentials%20to%20secure%20the%20admin%20section.%20Also%20be%20sure%20to%20enable%20the%20Postgres%20database%20integration&envLink=https%3A%2F%2Fplatform.openai.com%2Fapi-keys&demo-title=RagRabbit%20-%20AI%20Site%20Search%20and%20LLM.txt&demo-description=Site%20AI%20Search%20and%20LLM.txt%20in%20Minutes%2C%20Open%20Source%20with%201%20Click%20Deploy%20on%20Vercel.&demo-url=https%3A%2F%2Fragrabbit.vercel.app%2F&demo-image=https%3A%2F%2Fragrabbit.vercel.app%2Fopengraph-image.png&stores=%5B%7B%22type%22%3A%22postgres%22%7D%5D&root-directory=apps/saas)
 
@@ -148,7 +148,7 @@ in `claude_desktop_config.json` (Claude -> Settings -> Developer -> Edit Config)
 ```
 {
   "mcpServers": {
-    "<name of your documentation>": {
+    "<name_of_your_documentation_no_spaces>": {
       "command": "npx",
       "args": ["@ragrabbit/mcp", "http://<RagRabbit install>/", "<name of your documentation>"]
     }

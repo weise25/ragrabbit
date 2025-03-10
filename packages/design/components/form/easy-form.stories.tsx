@@ -56,7 +56,7 @@ const EasyFormExample = () => {
         placeholder="Enter some text"
       />
       <EasyFormFieldSwitch form={form} name="switch" title="Switch" label="Switch Label" />
-      <EasyFormSubmit form={form} isExecuting={false} />
+      <EasyFormSubmit form={form} />
     </EasyForm>
   );
 };
@@ -82,7 +82,7 @@ export const Loading: Story = {
       <EasyForm form={form} onSubmit={async () => {}} message="Form submitted">
         <EasyFormFieldText form={form} name="name" title="Name" description="Please enter your full name" />
         <EasyFormFieldText form={form} name="email" title="Email" description="Enter your email address" />
-        <EasyFormSubmit form={form} isExecuting={true} />
+        <EasyFormSubmit form={form} />
       </EasyForm>
     );
   },
@@ -112,7 +112,7 @@ export const FormSubmit: Story = {
   render: () => {
     const form = useForm();
 
-    return <EasyFormSubmit form={form} isExecuting={false} />;
+    return <EasyFormSubmit form={form} />;
   },
 };
 

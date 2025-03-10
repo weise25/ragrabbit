@@ -45,11 +45,7 @@ export const ragProcessingTask = task({
   id: "rag-processing",
   maxDuration: 300, // 5 minutes
   queue: {
-    rateLimit: {
-      limit: 5,
-      type: "sliding-window",
-      window: { seconds: 5 },
-    },
+    concurrencyLimit: 5,
   },
   run: async (payload: { indexedId: number }, { ctx }) => {
     logger.log("Indexing", { indexedId: payload.indexedId });

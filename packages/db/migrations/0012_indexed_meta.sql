@@ -1,0 +1,1 @@
+ALTER TABLE "indexed" ADD COLUMN "metadata" jsonb DEFAULT '{}'::jsonb;

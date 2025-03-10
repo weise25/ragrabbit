@@ -338,6 +338,15 @@ const MyAssistantMessage: FC = () => {
       <div className="text-foreground col-span-2 col-start-2 row-start-1 my-1.5 break-words leading-7">
         {annotation && <SourceBoxList sources={sources} />}
       </div>
+
+      {message?.content?.length === 0 && (
+        <div className="col-span-2 col-start-2 space-y-3">
+          <Skeleton className="h-4 w-3/4" />
+          <Skeleton className="h-4 w-1/2" />
+          <Skeleton className="h-4 w-2/3" />
+        </div>
+      )}
+
       <MessagePrimitive.Root>
         <div className="text-foreground col-span-2 col-start-2 row-start-1 my-1.5 break-words leading-7">
           <MessagePrimitive.Content components={{ Text: MarkdownText }} />

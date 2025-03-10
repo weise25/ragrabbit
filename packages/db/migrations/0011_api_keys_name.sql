@@ -1,0 +1,1 @@
+ALTER TABLE "api_keys" ADD COLUMN "name" varchar(255) NOT NULL;

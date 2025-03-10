@@ -32,6 +32,17 @@ async function main() {
 
   console.log("Admin user created");
 
+  await db
+    .insert(schema.widgetConfigTable)
+    .overridingSystemValue()
+    .values({
+      id: 1,
+      organizationId: 1,
+    })
+    .onConflictDoNothing();
+
+  console.log("Widget config created");
+
   console.log("Database seeded.");
   process.exit(0);
 }

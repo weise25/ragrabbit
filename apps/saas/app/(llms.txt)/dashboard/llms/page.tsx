@@ -1,13 +1,11 @@
 import { Metadata } from "next";
 import { authOrLogin } from "@repo/auth";
-import { Button } from "@repo/design/shadcn/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/design/shadcn/card";
-import { ScrollArea } from "@repo/design/shadcn/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/design/shadcn/tabs";
-import { FileTextIcon, Link, Calendar, Hash, Type, Database } from "@repo/design/base/icons";
+import { Card, CardContent } from "@repo/design/shadcn/card";
+import { Database, Type, Hash, Calendar } from "@repo/design/base/icons";
 import { headers } from "next/headers";
 import { ResetCacheButton } from "./components/reset-cache-button";
-import { getLlmStats } from "./actions";
+import { getLlmStats, getLlmsConfigAction } from "./actions";
+import { LlmPageContent } from "./components/llm-page-content";
 
 export const metadata: Metadata = {
   title: "LLMs.txt",
@@ -36,16 +34,15 @@ async function getBaseUrl() {
 export default async function LlmPage() {
   const session = await authOrLogin();
   const baseUrl = await getBaseUrl();
-  const { data: stats } = await getLlmStats({});
 
-  const response = await fetch(`${baseUrl}/llms.txt?organizationId=${session.user.organizationId}`, {
-    cache: "no-store",
-  });
-  const content = await response.text();
-  const fullResponse = await fetch(`${baseUrl}/llms-full.txt?organizationId=${session.user.organizationId}`, {
-    cache: "no-store",
-  });
-  const fullContent = await fullResponse.text();
+  const [{ data: stats }, { data: config }, contentResponse, fullContentResponse] = await Promise.all([
+    getLlmStats({}),
+    getLlmsConfigAction({}),
+    fetch(`${baseUrl}/llms.txt?organizationId=${session.user.organizationId}`),
+    fetch(`${baseUrl}/llms-full.txt?organizationId=${session.user.organizationId}`),
+  ]);
+
+  const [content, fullContent] = await Promise.all([contentResponse.text(), fullContentResponse.text()]);
 
   return (
     <>
@@ -98,66 +95,13 @@ export default async function LlmPage() {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="toc" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="toc">Table of Contents</TabsTrigger>
-          <TabsTrigger value="full">Full Content</TabsTrigger>
-        </TabsList>
-        <TabsContent value="toc">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <div>
-                <CardTitle>Table of Contents</CardTitle>
-                <CardDescription>
-                  This is how your{" "}
-                  <a href="/llms.txt" target="_blank" className="text-blue-500 underline">
-                    {baseUrl}/llms.txt
-                  </a>{" "}
-                  file looks like. The content is cached for 1 hour.
-                </CardDescription>
-              </div>
-              <Button variant="outline" size="sm" asChild>
-                <a href={`/llms.txt?organizationId=${session.user.organizationId}`} target="_blank">
-                  <FileTextIcon className="h-4 w-4 mr-2" />
-                  Open LLMs.txt
-                </a>
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[500px] w-full rounded-md border p-4">
-                <pre className="text-sm whitespace-pre-wrap font-mono">{content}</pre>
-              </ScrollArea>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="full">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <div>
-                <CardTitle>Full Content</CardTitle>
-                <CardDescription>
-                  This is how your{" "}
-                  <a href="/llms-full.txt" target="_blank" className="text-blue-500 underline">
-                    {baseUrl}/llms-full.txt
-                  </a>{" "}
-                  file looks like. The content is cached for 1 hour.
-                </CardDescription>
-              </div>
-              <Button variant="outline" size="sm" asChild>
-                <a href={`/llms-full.txt?organizationId=${session.user.organizationId}`} target="_blank">
-                  <FileTextIcon className="h-4 w-4 mr-2" />
-                  Open LLMs-full.txt
-                </a>
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[500px] w-full rounded-md border p-4">
-                <pre className="text-sm whitespace-pre-wrap font-mono">{fullContent}</pre>
-              </ScrollArea>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      <LlmPageContent
+        organizationId={session.user.organizationId}
+        baseUrl={baseUrl}
+        content={content}
+        fullContent={fullContent}
+        config={config}
+      />
     </>
   );
 }

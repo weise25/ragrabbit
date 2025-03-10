@@ -6,6 +6,7 @@ import {
   MessageSquareCode,
   FileText,
   BookOpen,
+  Share2,
 } from "@repo/design/base/icons";
 import type { MenuGroup } from "@repo/design/components/providers/config-provider";
 
@@ -19,11 +20,20 @@ export const sidebarMenu: MenuGroup[] = [
         icon: MessageSquare,
         submenus: [],
       },
-
+      {
+        href: "/dashboard/widget",
+        label: "Widget",
+        icon: MessageSquareCode,
+      },
       {
         href: "/dashboard/llms",
         label: "LLMs.txt",
         icon: FileText,
+      },
+      {
+        href: "/dashboard/mcp",
+        label: "MCP Server",
+        icon: Share2,
       },
     ],
   },
@@ -38,24 +48,19 @@ export const sidebarMenu: MenuGroup[] = [
       },
       {
         href: "/dashboard/chats",
-        label: "Chats",
+        label: "Chats History",
         icon: MessageSquare,
-      },
-      {
-        href: "/dashboard/widget",
-        label: "Configuration",
-        icon: MessageSquareCode,
-      },
-      {
-        href: "/dashboard/integration",
-        label: "Integration",
-        icon: BookOpen,
       },
     ],
   },
   {
     groupLabel: "Settings",
     menus: [
+      {
+        href: "/dashboard/api",
+        label: "API Keys",
+        icon: MessageSquareCode,
+      },
       {
         href: "/dashboard/user/profile",
         label: "User",

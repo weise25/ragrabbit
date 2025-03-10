@@ -14,23 +14,23 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@hookform/resolvers": "^3.9.0",
+    "@hookform/resolvers": "^3.10.0",
     "@next-safe-action/adapter-react-hook-form": "^1.0.13",
     "@repo/core": "workspace:*",
-    "next-safe-action": "^7.10.2",
-    "zod": "^3.24.1"
+    "next-safe-action": "^7.10.4",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "@repo/auth": "workspace:*",
     "@repo/logger": "workspace:*",
     "@repo/typescript-config": "workspace:*",
-    "@vercel/node": "^5.0.2",
-    "next": "15.1.4",
-    "react-hook-form": "^7.53.0"
+    "@vercel/node": "^5.1.12",
+    "next": "15.2.1",
+    "react-hook-form": "^7.54.2"
   },
   "peerDependencies": {
     "@repo/logger": "workspace:*",
     "@repo/typescript-config": "workspace:*",
-    "react-hook-form": "^7.53.0"
+    "react-hook-form": "^7.54.2"
   }
 }

@@ -1,10 +1,12 @@
 import { integer, jsonb, pgEnum, pgTable, serial, text, timestamp, unique } from "drizzle-orm/pg-core";
 import { organizationsTable } from "./auth";
 
-export const llmstxtTypeEnum = pgEnum("llmstxt_type", ["TOC", "FULL"]);
+export const llmstxtTypeEnum = pgEnum("llmstxt_type", ["SINGLE", "TOC"]);
 
 export type LlmstxtOrderedContentIds = {
-  contentId: number;
+  contentId?: number;
+  excluded?: boolean;
+  url?: string;
   childs?: { [order: number]: LlmstxtOrderedContentIds };
 };
 
@@ -15,15 +17,18 @@ export const llmstxtTable = pgTable(
     organizationId: integer()
       .notNull()
       .references(() => organizationsTable.id, { onDelete: "cascade" }),
-    type: llmstxtTypeEnum().default("FULL").notNull(),
-    content: text().notNull(),
+    content: text().notNull().default(""),
+    contentToc: text().notNull().default(""),
     orderedContentIds: jsonb().$type<LlmstxtOrderedContentIds[]>().default([]),
+    title: text(),
+    description: text(),
+    type: llmstxtTypeEnum().default("TOC"),
     createdAt: timestamp().defaultNow().notNull(),
     updatedAt: timestamp(),
   },
   (table) => {
     return {
-      uniqueOrgType: unique().on(table.organizationId, table.type),
+      uniqueOrgType: unique().on(table.organizationId),
     };
   }
 );

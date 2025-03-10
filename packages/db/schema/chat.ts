@@ -57,6 +57,8 @@ export const messagesTable = pgTable("messages", {
     }[]
   >(),
   tokenCount: integer("token_count").notNull().default(0),
+  costInputTokens: integer("cost_input_tokens").notNull().default(0),
+  costOutputTokens: integer("cost_output_tokens").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at"),
 });

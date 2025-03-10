@@ -1,17 +1,6 @@
+import { codeBlock } from "common-tags";
+import { ContextChatEngine, QueryEngineTool, VectorStoreIndex } from "llamaindex";
 import { getVectorStore } from "../indexing/llamaindex";
-import {
-  OpenAI,
-  SimpleChatEngine,
-  ContextChatEngine,
-  QueryEngineTool,
-  VectorStoreIndex,
-  Settings,
-  OpenAIEmbedding,
-  PromptTemplate,
-  HuggingFaceEmbedding,
-} from "llamaindex";
-import { codeBlock, oneLine } from "common-tags";
-import { IndexStatus } from "@repo/db/schema";
 import "../settings";
 
 export const systemPrompt = codeBlock`
@@ -48,7 +37,7 @@ export async function getRagTool() {
 export async function getRagRetriever(organizationId?: number) {
   const index = await VectorStoreIndex.fromVectorStore(await getVectorStore());
   const retriever = index.asRetriever({
-    similarityTopK: 5,
+    similarityTopK: 8,
     filters: organizationId
       ? {
           filters: [{ key: "metadata.organizationId", value: organizationId, operator: "==" }],

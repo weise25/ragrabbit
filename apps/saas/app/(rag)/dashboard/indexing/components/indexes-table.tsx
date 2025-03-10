@@ -57,6 +57,11 @@ export default function IndexesTable() {
                 )}
                 {hyphenateUrl(row.getValue("url"))}
               </div>
+              {row.original.source == "API" && (
+                <Badge variant="secondary" className="ml-2">
+                  API
+                </Badge>
+              )}
               {row.original.doCrawl && (
                 <Badge variant="secondary" className="ml-2">
                   Origin

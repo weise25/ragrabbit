@@ -89,6 +89,7 @@ export async function processDbItem(indexedId: number): Promise<ProcessResult> {
       title,
       description,
       organizationId: indexed.organizationId,
+      metadata: scrapeData.metadata,
     });
 
     await db

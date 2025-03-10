@@ -1,29 +1,10 @@
-import { openai } from "@ai-sdk/openai";
+import { RateLimitError } from "@repo/core";
 import db from "@repo/db";
-import { and, eq } from "@repo/db/drizzle";
-import {
-  Chat,
-  chatsTable,
-  messagesTable,
-  NewChat,
-  Message as DbMessage,
-  NewMessage as DbNewMessage,
-} from "@repo/db/schema";
-import { Source } from "@repo/design/components/chat/source-box";
+import { and, eq, gte, sql } from "@repo/db/drizzle";
+import { Chat, chatsTable, NewMessage as DbNewMessage, messagesTable, widgetConfigTable } from "@repo/db/schema";
 import { logger } from "@repo/logger";
-import { getPrompt, getRagRetriever } from "@repo/rag/answering/llamaindex";
 import { countTokens } from "@repo/rag/indexing/tokens";
-import { MetadataMode } from "@repo/rag/llamaindex.mjs";
-import {
-  appendClientMessage,
-  createDataStreamResponse,
-  createIdGenerator,
-  generateId,
-  Message,
-  smoothStream,
-  streamText,
-  TextPart,
-} from "ai";
+import { LanguageModelUsage, Message, TextPart } from "ai";
 
 const log = logger.child({
   module: "chat",
@@ -48,7 +29,8 @@ export async function saveMessages(
   clientMessage: Message,
   assistantMessage: Message,
   responseMessages: ResponseMessage[],
-  annotations: Record<string, any>
+  annotations: Record<string, any>,
+  usage?: LanguageModelUsage
 ) {
   log.debug(
     {
@@ -69,10 +51,12 @@ export async function saveMessages(
       clientMessage,
       assistantMessage,
       responseMessages,
-      annotations
+      annotations,
+      usage
     );
   } catch (error) {
     console.error(error);
+    // Ignore errors
   }
 }
 
@@ -88,7 +72,8 @@ async function _saveMessages(
   clientMessage: Message | null,
   assistantMessage: Message | null,
   responseMessages: ResponseMessage[] | null,
-  annotations: Record<string, any>
+  annotations: Record<string, any>,
+  usage?: LanguageModelUsage
 ) {
   const newChat = {
     chatId,
@@ -141,8 +126,80 @@ async function _saveMessages(
         data: message.data,
         annotations: annotations as any,
         tokenCount: await countTokens(message?.content?.[0]?.text),
+        costInputTokens: usage?.promptTokens,
+        costOutputTokens: usage?.completionTokens,
       }))
     );
     await db.insert(messagesTable).values(newResponseMessages);
+
+    // Also increment the totals and the period is automatically reset if it's over the current month
+    await updateUsageCount(usage, organizationId);
   }
+}
+
+async function updateUsageCount(usage: LanguageModelUsage, organizationId: number) {
+  await db
+    .update(widgetConfigTable)
+    .set({
+      [widgetConfigTable.currentPeriodInputTokens.name]: sql`
+          CASE 
+            WHEN date_trunc('month', ${widgetConfigTable.currentPeriodStart}) < date_trunc('month', now()) 
+            THEN ${usage.promptTokens}
+            ELSE ${widgetConfigTable.currentPeriodInputTokens} + ${usage.promptTokens}
+          END
+        `,
+      [widgetConfigTable.currentPeriodOutputTokens.name]: sql`
+          CASE 
+            WHEN date_trunc('month', ${widgetConfigTable.currentPeriodStart}) < date_trunc('month', now()) 
+            THEN ${usage.completionTokens}
+            ELSE ${widgetConfigTable.currentPeriodOutputTokens} + ${usage.completionTokens}
+          END
+        `,
+      [widgetConfigTable.currentPeriodStart.name]: sql`
+          CASE 
+            WHEN date_trunc('month', ${widgetConfigTable.currentPeriodStart}) < date_trunc('month', now()) 
+            THEN date_trunc('month', now())
+            ELSE ${widgetConfigTable.currentPeriodStart}
+          END
+        `,
+    })
+    .where(eq(widgetConfigTable.organizationId, organizationId))
+    .returning();
+}
+
+export async function checkLimitsUsage(organizationId: number): Promise<boolean> {
+  const widgetConfig = await db.query.widgetConfigTable.findFirst({
+    where: eq(widgetConfigTable.organizationId, organizationId),
+  });
+
+  const maxTokens = widgetConfig?.maxTokens * 1_000_000;
+  const inputOutputCostRatio = 4;
+  const currentTokens =
+    widgetConfig?.currentPeriodInputTokens / inputOutputCostRatio + widgetConfig?.currentPeriodOutputTokens;
+  if (currentTokens > maxTokens) {
+    throw new RateLimitError("Usage quota exceeded");
+  }
+
+  return true;
+}
+
+export async function checkLimitsIp(organizationId: number, ip: string): Promise<boolean> {
+  if (process.env.NODE_ENV === "development") {
+    return true;
+  }
+  // Check max number of chats from the same IP in the last hour:
+  const oneHourAgo = new Date(Date.now() - 1000 * 60 * 60);
+  const maxChats = Number(process.env.MAX_CHATS_PER_IP || 10);
+  const chats = await db.query.chatsTable.findMany({
+    where: and(
+      eq(chatsTable.organizationId, organizationId),
+      eq(chatsTable.ip, ip),
+      gte(chatsTable.createdAt, oneHourAgo)
+    ),
+  });
+  if (chats.length >= maxChats) {
+    throw new RateLimitError("Too many requests");
+  }
+
+  return true;
 }

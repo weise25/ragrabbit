@@ -49,6 +49,9 @@ export const addCrawlSchema = z.object({
     allowSubdomains: z.boolean(),
     maxDepth: z.coerce.number(),
     stripQueries: z.string(),
+    allowLinksRegexp: z.string(),
+    excludeLinksRegexp: z.string(),
+    transformStrategy: z.enum(["llm", "markdown"]),
   }),
 });
 

@@ -6,39 +6,29 @@ import { z } from "zod";
 import { zodResponseFormat } from "openai/helpers/zod.mjs";
 import { logger } from "@repo/logger";
 import { env } from "../env.mjs";
-import { RagMetadata } from "./metadata.type";
+import { metadataSchema, RagMetadata } from "@repo/db/schema";
 import { countTokens } from "./tokens";
+import { normalizeUrl, normalizeUrlOrNull } from "@repo/db/schema";
 
 const log = logger.child({
   component: "Llamaindex",
 });
 
-const metadataSchema = z.object({
-  title: z.string(),
-  description: z.string(),
-  keywords: z.array(z.string()),
-  questions: z.array(z.string()),
-  entities: z.array(
-    z.object({
-      name: z.string(),
-      type: z.string(),
-    })
-  ),
-});
-
 const prompt = codeBlock`
-Extract from the following text:
- - The title of the page
- - A short description of the page (max 100 characters)
- - A list of keywords (max 10)
- - A list of questions that can be answered by the page (max 5)
- - A list of entities that can be extracted from the page (max 5)
+Extract from the following web page in markdown format:
+ - title: The title of the page, if a title is present use that, but remove brands or other SEO items
+ - description: A short description of the page (max 100 characters)
+ - parentUrl: The URL of the parent of this page in the TOC, different from the current page URL. Infer this from any breadcrumbs links or parent/back link that are present ONLY at the top of the page. If unsure, leave it empty.
+ - keywords: A list of keywords (max 10)
+ - questions: A list of questions that can be answered by the page (max 5)
+ - entities: A list of entities that can be extracted from the page (max 5)
 
-{{predefinedData}}
+Current page url: {{url}}
+
 Output the result in JSON format.
 `;
 
-export async function extractMetadata(text: string): Promise<Partial<RagMetadata> | undefined> {
+export async function extractMetadata(text: string, url: string): Promise<Partial<RagMetadata> | undefined> {
   if (!env.OPENAI_API_KEY) {
     throw new Error(`OPENAI_API_KEY is required to get metadata`);
   }
@@ -53,7 +43,7 @@ export async function extractMetadata(text: string): Promise<Partial<RagMetadata
     messages: [
       {
         role: "system",
-        content: prompt,
+        content: prompt.replace("{{url}}", url || ""),
       },
       {
         role: "user",
@@ -73,14 +63,14 @@ export async function extractMetadata(text: string): Promise<Partial<RagMetadata
     return;
   }
 
-  const parsed = JSON.parse(message.content);
-
+  const parsed = metadataSchema.parse(JSON.parse(message.content));
   return {
     pageTitle: parsed.title,
     pageDescription: parsed.description,
+    pageParentUrl: normalizeUrlOrNull(parsed.parentUrl, url),
     keywords: parsed.keywords || [],
     questions: parsed.questions || [],
-    entities: parsed.entities || [],
+    entities: (parsed.entities as any) || [],
     tokens: await countTokens(text),
   };
 }
@@ -101,7 +91,7 @@ export class LlamaindexMetadataTransformer extends TransformComponent {
   }
 
   async transform_node(node: TextNode): Promise<TextNode> {
-    const metadata = await extractMetadata(node.text);
+    const metadata = await extractMetadata(node.text, "http://foo.com/");
     node.metadata = {
       ...node.metadata,
       ...metadata,

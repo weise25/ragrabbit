@@ -144,7 +144,17 @@ export function EasyFormFieldNumber({ form, name, title, description }: EasyForm
   return <EasyFormFieldText form={form} name={name} title={title} description={description} type="number" />;
 }
 
-export function EasyFormFieldSwitch({ form, name, title, label, description }: EasyFormFieldProps & { label: string }) {
+export function EasyFormFieldSwitch({
+  form,
+  name,
+  title,
+  label,
+  description,
+  values,
+}: EasyFormFieldProps & {
+  label: string;
+  values?: { label: string; value: string }[];
+}) {
   return (
     <FormField
       control={form.control}
@@ -152,9 +162,29 @@ export function EasyFormFieldSwitch({ form, name, title, label, description }: E
       render={({ field }) => (
         <EasyFormFieldTemplate title={title} description={description}>
           <div className="flex items-center space-x-2">
-            <Switch {...field} checked={field.value} onCheckedChange={field.onChange} />
-            <Label htmlFor={name} className="cursor-pointer" onClick={() => field.onChange(!field.value)}>
-              {label}
+            <Switch
+              {...field}
+              checked={values ? field.value === values[1].value : field.value}
+              onCheckedChange={(checked) => {
+                if (values) {
+                  field.onChange(checked ? values[1].value : values[0].value);
+                } else {
+                  field.onChange(checked);
+                }
+              }}
+            />
+            <Label
+              htmlFor={name}
+              className="cursor-pointer"
+              onClick={() => {
+                if (values) {
+                  field.onChange(field.value === values[0].value ? values[1].value : values[0].value);
+                } else {
+                  field.onChange(!field.value);
+                }
+              }}
+            >
+              {values ? (field.value === values[1].value ? values[1].label : values[0].label) : label}
             </Label>
           </div>
         </EasyFormFieldTemplate>

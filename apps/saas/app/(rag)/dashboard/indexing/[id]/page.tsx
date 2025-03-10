@@ -1,7 +1,7 @@
 import { authOrLogin } from "@repo/auth";
 import db from "@repo/db";
-import { and, eq } from "@repo/db/drizzle";
-import { Indexed, IndexedContent, indexedTable, llamaindexEmbedding } from "@repo/db/schema";
+import { and, eq, not } from "@repo/db/drizzle";
+import { Indexed, IndexedContent, indexedTable, llamaindexEmbedding, normalizeUrl } from "@repo/db/schema";
 import {
   ArrowLeft,
   FileText,
@@ -12,6 +12,8 @@ import {
   Hash,
   Type,
   FileQuestion,
+  LinkIcon,
+  ExternalLinkIcon,
 } from "@repo/design/base/icons";
 import { Button } from "@repo/design/shadcn/button";
 import { Card, CardContent } from "@repo/design/shadcn/card";
@@ -21,8 +23,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ReEmbeddingsButton } from "../components/buttons";
 import { ReScrapeButton } from "../components/buttons";
-import { RagMetadata } from "@repo/rag/indexing/metadata.type";
+import { RagMetadata } from "@repo/db/schema";
 import EditButton from "../components/edit-button";
+import { hyphenateUrl } from "@repo/design/lib/hyphenations";
 
 function formatBytes(bytes: number) {
   if (!bytes) return "0 Bytes";
@@ -60,7 +63,7 @@ export default async function IndexContentPage({ params }: { params: { id: strin
 
   const indexedContent = indexed.indexedContent;
 
-  const metadata = embeddings[0]?.metadata as RagMetadata;
+  const metadata = indexed.metadata as RagMetadata;
   const wordCount = indexedContent ? countWords(indexedContent.content) : 0;
   const contentSize = indexedContent ? new TextEncoder().encode(indexedContent.content).length : 0;
 
@@ -75,6 +78,18 @@ export default async function IndexContentPage({ params }: { params: { id: strin
     }, {}) || {};
 
   const totalTokens = metadata?.tokens || 0;
+
+  // Find parent URL index if it exists
+  let parentIndex: Indexed | null = null;
+  if (metadata?.pageParentUrl) {
+    const normalizedParentUrl = normalizeUrl(metadata.pageParentUrl);
+    parentIndex = (await db.query.indexedTable.findFirst({
+      where: and(
+        eq(indexedTable.normalizedUrl, normalizedParentUrl),
+        eq(indexedTable.organizationId, session.user.organizationId)
+      ),
+    })) as Indexed | null;
+  }
 
   return (
     <>
@@ -103,10 +118,15 @@ export default async function IndexContentPage({ params }: { params: { id: strin
             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="flex flex-col gap-1">
                 <div className="text-sm text-muted-foreground flex items-center gap-2">
-                  <FileIcon className="h-4 w-4" />
-                  Title
+                  <LinkIcon className="h-4 w-4" />
+                  Url
                 </div>
-                <div className="font-medium truncate">{indexed.title}</div>
+                <div className="font-medium truncate">
+                  <Link href={indexed.url} target="_blank" className="text-primary underline flex items-center gap-2">
+                    {hyphenateUrl(indexed.url)}
+                    <ExternalLinkIcon className="h-4 w-4" />
+                  </Link>
+                </div>
               </div>
               <div className="flex flex-col gap-1">
                 <div className="text-sm text-muted-foreground flex items-center gap-2">
@@ -195,6 +215,41 @@ export default async function IndexContentPage({ params }: { params: { id: strin
                       <h3 className="text-lg font-semibold">Summary</h3>
                     </div>
                     <p className="text-muted-foreground">{metadata?.pageDescription || "No description"}</p>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <LinkIcon className="h-4 w-4" />
+                      <h3 className="text-lg font-semibold">Parent URL</h3>
+                    </div>
+                    <p className="text-muted-foreground">
+                      {metadata?.pageParentUrl ? (
+                        parentIndex ? (
+                          parentIndex.id != indexId ? (
+                            <Link
+                              href={`/dashboard/indexing/${parentIndex.id}`}
+                              className="text-primary underline flex items-center gap-2"
+                            >
+                              {parentIndex.title}
+                              <ExternalLinkIcon className="h-4 w-4" />
+                            </Link>
+                          ) : (
+                            "No parent URL"
+                          )
+                        ) : (
+                          <Link
+                            href={metadata.pageParentUrl}
+                            target="_blank"
+                            className="text-primary underline flex items-center gap-2"
+                          >
+                            {hyphenateUrl(metadata.pageParentUrl)}
+                            <ExternalLinkIcon className="h-4 w-4" />
+                          </Link>
+                        )
+                      ) : (
+                        "No parent URL"
+                      )}
+                    </p>
                   </div>
 
                   <div>

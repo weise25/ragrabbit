@@ -23,23 +23,61 @@ import {
   streamText,
   TextPart,
 } from "ai";
-import { loadMessages, ResponseMessage, saveMessages } from "./db";
+import { checkLimitsIp, checkLimitsUsage, loadMessages, ResponseMessage, saveMessages } from "./db";
+import { RateLimitError, UserError } from "@repo/core";
 
 export const maxDuration = 30;
 
+const SOURCES_RAG = 3;
+
 export async function POST(req: Request, res: Response) {
+  const orgId = 1;
+  const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || req.headers.get("cf-connecting-ip");
+
+  // Check limits and in parallel but abort the LLM request as soon as any fails:
+  const abortController = new AbortController();
+  try {
+    const ipPromise = checkLimitsIp(orgId, ip);
+    const usagePromise = checkLimitsUsage(orgId);
+    const handleRequestPromise = handleRequest(ip, orgId, req, res, abortController.signal);
+
+    return await Promise.all([ipPromise, usagePromise, handleRequestPromise])
+      .catch((error) => {
+        // If any fails, abort the LLM request:
+        abortController.abort();
+        throw error;
+      })
+      .then((response) => {
+        return response[2];
+      });
+  } catch (e) {
+    if (e instanceof UserError) {
+      return new Response(e.message, { status: e.status });
+    }
+    return new Response("Internal server error", { status: 500 });
+  }
+}
+
+function handleAbort(signal: AbortSignal) {
+  if (signal?.aborted) {
+    throw new Error("Operation was aborted");
+  }
+}
+
+async function handleRequest(ip: string, orgId: number, req: Request, res: Response, signal?: AbortSignal) {
   // get the last message from the client:
   const { message, id, userChatId }: { message: Message; id: string; userChatId: string } = await req.json();
   message.content = message.content.slice(0, 1000); // limit the message to 1000 characters
 
   const [userId, chatId] = userChatId.split("-");
-  const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || req.headers.get("cf-connecting-ip");
 
-  // load the previous messages from the server:
-  let messages = await loadMessages(userId, chatId);
+  // load the previous messages in parallel:
+  handleAbort(signal);
+  let messagesPromise = loadMessages(userId, chatId);
 
   return createDataStreamResponse({
     execute: async (dataStream) => {
+      handleAbort(signal);
       const retriever = await getRagRetriever();
       const relevantSources = await retriever.retrieve({
         query: message.content,
@@ -50,6 +88,10 @@ export async function POST(req: Request, res: Response) {
       let suggestedPrompts = new Set<string>();
       for (const source of relevantSources) {
         const metadata: Metadata = source.node.metadata;
+        // Skip duplicates:
+        if (sources.find((s) => s.url === metadata.pageUrl)) {
+          continue;
+        }
         sources.push({
           url: metadata.pageUrl,
           title: metadata.pageTitle,
@@ -69,19 +111,22 @@ export async function POST(req: Request, res: Response) {
       }
 
       // Send to UI as a message annotation:
+      handleAbort(signal);
       const sourcesAnnotation = {
         type: "sources",
         data: sources,
       };
-      // TODO: this is cleaner in the frontend, but will be sent only when the first chunk is answered by AI:
+      // Send the annotation immediately by writing an empty text part first
       dataStream.writeMessageAnnotation(sourcesAnnotation);
 
       // Add context to the messages:
+      handleAbort(signal);
       const assistantMessage: Message = {
         id: generateId(),
         role: "assistant",
-        content: "Use the following information to answer the question: " + content.slice(0, 3).join("\n"),
+        content: "Use the following information to answer the question: " + content.slice(0, SOURCES_RAG).join("\n"),
       };
+      let messages = await messagesPromise;
       messages = [...messages, assistantMessage];
 
       // append the new message:
@@ -89,9 +134,19 @@ export async function POST(req: Request, res: Response) {
         messages,
         message,
       });
-      const savePromise = saveMessages(chatId, userId, ip, 1, message, assistantMessage, null, {
-        sources: sourcesAnnotation,
-      });
+      const savePromise = saveMessages(
+        chatId,
+        userId,
+        ip,
+        orgId,
+        message,
+        assistantMessage,
+        null,
+        {
+          sources: sourcesAnnotation,
+        },
+        null
+      );
 
       const result = streamText({
         model: openai("gpt-4o-mini"),
@@ -103,7 +158,9 @@ export async function POST(req: Request, res: Response) {
           prefix: "msgs",
           size: 16,
         }),
-        async onFinish({ response }) {
+        abortSignal: signal,
+
+        async onFinish({ response, usage }) {
           // Send the questions extracted previously:
           const suggestedPromptsAnnotation = {
             type: "suggested-prompts",
@@ -113,10 +170,20 @@ export async function POST(req: Request, res: Response) {
 
           // Save the chat:
           await savePromise;
-          await saveMessages(chatId, userId, ip, 1, null, null, response.messages as ResponseMessage[], {
-            sources: sourcesAnnotation,
-            suggestedPrompts: suggestedPromptsAnnotation,
-          });
+          await saveMessages(
+            chatId,
+            userId,
+            ip,
+            orgId,
+            null,
+            null,
+            response.messages as ResponseMessage[],
+            {
+              sources: sourcesAnnotation,
+              suggestedPrompts: suggestedPromptsAnnotation,
+            },
+            usage
+          );
         },
       });
 

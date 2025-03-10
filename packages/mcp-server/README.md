@@ -21,7 +21,7 @@ in `claude_desktop_config.json` (Claude -> Settings -> Developer -> Edit Config)
 ```
 {
   "mcpServers": {
-    "<name of your documentation>": {
+    "<name_of_your_documentation_no_spaces>": {
       "command": "npx",
       "args": ["@ragrabbit/mcp", "http://<RagRabbit install>/", "<name of your documentation>"]
     }

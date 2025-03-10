@@ -1,5 +1,11 @@
 import("./env.mjs");
 
+import bundleAnalyzer from "@next/bundle-analyzer";
+
+const withBundleAnalyzer = bundleAnalyzer({
+  enabled: process.env.ANALYZE === "true",
+});
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   functions: {
@@ -10,7 +16,7 @@ const nextConfig = {
   },
 
   // Build fixes for various dependencies issues on Vercel:
-  bundlePagesRouterDependencies: true,
+  //bundlePagesRouterDependencies: true,
   serverExternalPackages: [
     /* for llamaindex */
     "@huggingface/transformers",
@@ -61,4 +67,4 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+export default withBundleAnalyzer(nextConfig);

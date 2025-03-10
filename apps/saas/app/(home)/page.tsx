@@ -33,8 +33,14 @@ const sections = [
   {
     title: "LLM.txt",
     description: "Configure and customize your LLM.txt generation",
-    href: "/dashboard/llm",
+    href: "/dashboard/llms",
     icon: Bot,
+  },
+  {
+    title: "MCP",
+    description: "Configure and customize your MCP server",
+    href: "/dashboard/mcp",
+    icon: BookOpen,
   },
   {
     title: "Documentation",

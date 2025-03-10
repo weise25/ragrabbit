@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { ChevronDown } from "@repo/design/base/icons";
 import {
   EasyForm,
   EasyFormFieldNumber,
@@ -9,6 +10,7 @@ import {
   EasyFormSubmit,
 } from "@repo/design/components/form/easy-form";
 import { Button } from "@repo/design/shadcn/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@repo/design/shadcn/collapsible";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +19,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@repo/design/shadcn/dialog";
-import { useAction } from "next-safe-action/hooks";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -48,6 +49,9 @@ export default function AddCrawlFormDialog({
       allowSubdomains: false,
       maxDepth: 3,
       stripQueries: "",
+      allowLinksRegexp: "",
+      excludeLinksRegexp: "",
+      transformStrategy: "llm",
     },
   };
   const form = useForm<CrawlFormValues>({
@@ -62,6 +66,15 @@ export default function AddCrawlFormDialog({
   const open = controlledOpen ?? internalOpen;
   const setOpen = onOpenChange ?? setInternalOpen;
 
+  // Check if any advanced options differ from defaults
+  const hasNonDefaultAdvancedOptions = Boolean(
+    defaultValues.scrapeOptions?.stripQueries ||
+      defaultValues.scrapeOptions?.allowLinksRegexp ||
+      defaultValues.scrapeOptions?.excludeLinksRegexp ||
+      defaultValues.scrapeOptions?.allowSubdomains
+  );
+  const [showAdvanced, setShowAdvanced] = useState(hasNonDefaultAdvancedOptions);
+
   const onSubmit = async (data: CrawlFormValues) => {
     const result = indexId ? await updateCrawlAction({ ...data, id: indexId }) : await addCrawlAction(data);
     if (result?.data?.success) {
@@ -75,7 +88,7 @@ export default function AddCrawlFormDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{!indexId && <Button variant="outline">Add Site to Crawl</Button>}</DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] sm:max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{indexId ? "Edit Site" : "Add Site to Crawl"}</DialogTitle>
           <DialogDescription>
@@ -88,30 +101,50 @@ export default function AddCrawlFormDialog({
           <div className="flex flex-col gap-2">
             <span className="text-sm font-medium">Options</span>
             <div className="flex flex-col gap-3">
-              <EasyFormFieldSwitch
-                form={form}
-                name="isSitemap"
-                label="Sitemap"
-                description="If the URL is a sitemap, will be used to get the list of pages to scrape."
-              />
-              <EasyFormFieldSwitch
-                form={form}
-                name="scrapeOptions.allowSubdomains"
-                label="Allow Subdomains"
-                description="Allow crawling of subdomains of the same domain"
-              />
               <EasyFormFieldNumber
                 form={form}
                 name="scrapeOptions.maxDepth"
                 title="Max Depth"
                 description="Number of links to follow from the starting URL"
               />
-              <EasyFormFieldText
-                form={form}
-                name="scrapeOptions.stripQueries"
-                title="Strip Tags"
-                description="Comma separated list of css queries to strip from the page, eg: 'aside, nav, .toc'"
-              />
+
+              <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" className="flex items-center gap-2 w-full justify-start">
+                    <ChevronDown
+                      className={`h-4 w-4 transition-transform ${showAdvanced ? "transform rotate-180" : ""}`}
+                    />
+                    {showAdvanced ? "Hide Advanced Options" : "Show Advanced Options"}
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-3 pt-2">
+                  <EasyFormFieldText
+                    form={form}
+                    name="scrapeOptions.stripQueries"
+                    title="Strip Tags"
+                    description="Comma separated list of css queries to strip from the page, eg: 'aside, nav, .toc'"
+                  />
+                  <EasyFormFieldText
+                    form={form}
+                    name="scrapeOptions.allowLinksRegexp"
+                    title="Allow Links Regexp"
+                    placeholder="eg: ^https://www.example.com/.*"
+                    description="Regexp for the urls to scrape"
+                  />
+                  <EasyFormFieldText
+                    form={form}
+                    name="scrapeOptions.excludeLinksRegexp"
+                    title="Exclude Links Regexp"
+                    description="Regexp to exclude urls from being crawled"
+                  />
+                  <EasyFormFieldSwitch
+                    form={form}
+                    name="scrapeOptions.allowSubdomains"
+                    label="Allow Subdomains"
+                    description="Allow crawling across subdomains of the same domain"
+                  />
+                </CollapsibleContent>
+              </Collapsible>
             </div>
           </div>
           <EasyFormSubmit className="float-right" form={form} />

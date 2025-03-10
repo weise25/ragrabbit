@@ -1,0 +1,56 @@
+{
+  "name": "@ragrabbit/search-react",
+  "version": "0.1.0",
+  "description": "RagRabbit Search React SDK",
+  "keywords": [
+    "react",
+    "search",
+    "widget",
+    "chat"
+  ],
+  "author": "Marco D'Alia",
+  "license": "MIT",
+  "access": "public",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "watch": "tsup --watch",
+    "version:patch": "npm version minor",
+    "version:beta": "npm version prerelease --preid=beta",
+    "pre:publish": "npm run build",
+    "publish": "pnpm publish --no-git-checks"
+  },
+  "peerDependencies": {
+    "react": "19.0.0",
+    "react-dom": "19.0.0"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^22.13.9",
+    "@types/react": "19.0.10",
+    "@types/react-dom": "19.0.4",
+    "cross-env": "^7.0.3",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "shx": "^0.3.4",
+    "tsup": "^8.4.0",
+    "typescript": "^5.8.2"
+  }
+}

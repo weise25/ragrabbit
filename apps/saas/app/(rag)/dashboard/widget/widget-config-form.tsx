@@ -1,13 +1,16 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { ChevronDown } from "@repo/design/base/icons";
 import {
   EasyForm,
+  EasyFormFieldNumber,
   EasyFormFieldText,
   EasyFormMultiTextField,
   EasyFormSubmit,
 } from "@repo/design/components/form/easy-form";
 import { Button } from "@repo/design/shadcn/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@repo/design/shadcn/collapsible";
 import {
   Dialog,
   DialogContent,
@@ -32,6 +35,7 @@ export default function WidgetConfigForm({ defaultValues }: { defaultValues?: Pa
     suggestedQueries: [{ value: "" }],
     welcomeMessage: "",
     logoUrl: "",
+    maxTokens: 20,
   };
   const form = useForm<WidgetConfigFormValues>({
     resolver: zodResolver(widgetConfigSchema),
@@ -51,6 +55,8 @@ export default function WidgetConfigForm({ defaultValues }: { defaultValues?: Pa
     return result;
   };
 
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
   return (
     <EasyForm form={form} onSubmit={onSubmit} message="Config updated">
       <EasyFormFieldText
@@ -60,6 +66,7 @@ export default function WidgetConfigForm({ defaultValues }: { defaultValues?: Pa
         placeholder="Welcome to our widget!"
       />
       <EasyFormFieldText form={form} name="logoUrl" title="Logo URL" placeholder="https://..." />
+
       <EasyFormMultiTextField
         form={form}
         field={suggestedQueriesFieldArray}
@@ -68,6 +75,23 @@ export default function WidgetConfigForm({ defaultValues }: { defaultValues?: Pa
         placeholder="What is the meaning of life?"
         addButtonLabel="Add Suggested Query"
       />
+      <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" className="flex items-center gap-2 w-full justify-start">
+            <ChevronDown className={`h-4 w-4 transition-transform ${showAdvanced ? "transform rotate-180" : ""}`} />
+            {showAdvanced ? "Hide Advanced Options" : "Show Advanced Options"}
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-3 pt-2">
+          <EasyFormFieldNumber
+            form={form}
+            name="maxTokens"
+            title="Max Million Tokens per Month"
+            description="Maximum monthly Million tokens to use. Cost depends on the model used. Eg: 0.60$ per 1M tokens for gpt-4o-mini"
+          />
+        </CollapsibleContent>
+      </Collapsible>
+
       <EasyFormSubmit className="float-right" form={form} />
     </EasyForm>
   );

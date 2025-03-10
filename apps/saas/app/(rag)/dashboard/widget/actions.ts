@@ -14,6 +14,7 @@ export const widgetConfigAction = authActionClient
       suggestedQueries: parsedInput.suggestedQueries?.map((query) => query.value) || [],
       welcomeMessage: parsedInput.welcomeMessage,
       logoUrl: parsedInput.logoUrl,
+      maxTokens: parsedInput.maxTokens,
     };
 
     const widgetConfig = await db

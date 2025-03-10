@@ -8,6 +8,7 @@ import { uuid } from "drizzle-orm/pg-core";
 import { jsonb } from "drizzle-orm/pg-core";
 import { vector } from "drizzle-orm/pg-core";
 import { env } from "../env.mjs";
+import z from "zod";
 
 export type PgExtraConfigJson = ExtraConfigColumn<ColumnBaseConfig<ColumnDataType, string>>;
 
@@ -39,6 +40,9 @@ export const indexStatusEnum = pgEnum("index_status", [
   "OUTDATED",
 ]);
 
+export const indexTypeEnum = pgEnum("index_type", ["URL", "CONTENT"]);
+export const indexSourceEnum = pgEnum("index_source", ["MANUAL", "API"]);
+
 export const indexedTable = pgTable(
   "indexed",
   {
@@ -58,6 +62,9 @@ export const indexedTable = pgTable(
         stripFooter?: boolean;
         allowSubdomains?: boolean;
         maxDepth?: number;
+        allowLinksRegexp?: string;
+        excludeLinksRegexp?: string;
+        transformStrategy?: "llm" | "markdown";
       }>()
       .default({}),
 
@@ -66,6 +73,9 @@ export const indexedTable = pgTable(
      */
     doCrawl: boolean().default(false).notNull(),
     isSitemap: boolean().default(false).notNull(),
+    type: indexTypeEnum().default("URL").notNull(),
+    source: indexSourceEnum().default("MANUAL").notNull(),
+    metadata: jsonb().$type<Partial<RagMetadata>>().default({}),
     /**
      * If this content was found during a crawl, this is the original page from which the link was found
      */
@@ -91,16 +101,27 @@ export const indexedTable = pgTable(
   }
 );
 
-export function normalizeUrl(url: string, baseUrl?: string) {
+export function normalizeUrl(url: string, baseUrl?: string, stripTrailingSlash: boolean = true) {
   try {
     // Avoid error with protocol-relative urls:
     if (url.startsWith("//")) {
       url = "https:" + url;
     }
     const urlParts = new URL(url.toLowerCase(), baseUrl);
+    if (stripTrailingSlash) {
+      urlParts.pathname = urlParts.pathname.replace(/\/$/, "");
+    }
     return "//" + urlParts.hostname.replace("www.", "") + urlParts.pathname;
   } catch (e) {
     throw new Error(`Error normalizing url: ${url}, ${e}`);
+  }
+}
+
+export function normalizeUrlOrNull(url: string, baseUrl?: string, stripTrailingSlash?: boolean) {
+  try {
+    return normalizeUrl(url, baseUrl, stripTrailingSlash);
+  } catch (e) {
+    return null;
   }
 }
 
@@ -147,6 +168,33 @@ export const EmbeddingDimensions = {
   xenova: 1536,
 };
 
+export type RagMetadata = {
+  contentId: string;
+  organizationId: number;
+  pageUrl: string;
+  pageTitle?: string;
+  pageDescription?: string;
+  pageParentUrl?: string;
+  keywords?: string[];
+  questions?: string[];
+  entities?: Array<{ name: string; type: string }>;
+  tokens?: number;
+};
+
+export const metadataSchema = z.object({
+  title: z.string(),
+  description: z.string(),
+  parentUrl: z.string(),
+  keywords: z.array(z.string()),
+  questions: z.array(z.string()),
+  entities: z.array(
+    z.object({
+      name: z.string(),
+      type: z.string(),
+    })
+  ),
+});
+
 export const llamaindexEmbedding = pgTable(
   "indexed_content_embeddings",
   {
@@ -154,19 +202,7 @@ export const llamaindexEmbedding = pgTable(
     externalId: varchar("external_id"), // NB: This is not used by llamaindex
     collection: varchar(),
     document: text(),
-    metadata: jsonb()
-      .$type<{
-        contentId?: string;
-        organizationId?: number;
-        pageTitle?: string;
-        pageDescription?: string;
-        pageUrl?: string;
-        pageKeywords?: string[];
-        pageQuestions?: string[];
-        pageEntities?: { name: string; type: string }[];
-        tokens?: number;
-      }>()
-      .default({}),
+    metadata: jsonb().$type<Partial<RagMetadata>>().default({}),
     // Duplicate contentId from metadata to allow for cascade FK deletion:
     contentId: integer()
       .generatedAlwaysAs(sql`(metadata ->> 'contentId')::int`)
@@ -211,6 +247,10 @@ export const widgetConfigTable = pgTable("widget_config", {
   suggestedQueries: jsonb().$type<string[]>().default([]),
   welcomeMessage: text(),
   logoUrl: varchar(),
+  maxTokens: integer().default(20), // Million tokens
+  currentPeriodInputTokens: integer().default(0),
+  currentPeriodOutputTokens: integer().default(0),
+  currentPeriodStart: timestamp().defaultNow(),
 });
 
 export type WidgetConfig = InferSelectModel<typeof widgetConfigTable>;
