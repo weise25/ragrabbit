@@ -3,57 +3,11 @@ import db, { pool } from "@repo/db";
 import { eq } from "@repo/db/drizzle";
 import { EmbeddingDimensions, llamaindexEmbedding } from "@repo/db/schema";
 import { logger } from "@repo/logger";
-import {
-  Document,
-  IngestionPipeline,
-  SentenceSplitter,
-  Settings,
-  TransformComponent,
-  BaseNode,
-  Metadata,
-  TextNode,
-  NodeParser,
-} from "llamaindex";
+import { Document, IngestionPipeline, SentenceSplitter, Settings } from "llamaindex";
 import { env } from "../env.mjs";
 import { EmbeddingModel } from "../settings";
 import { extractMetadata } from "./metadata.extract";
 import { RagMetadata } from "@repo/db/schema";
-
-class SummaryExtractor implements NodeParser {
-  async parse(documents: Document[]): Promise<TextNode[]> {
-    const llm = Settings.llm;
-    const results: TextNode[] = [];
-
-    for (const doc of documents) {
-      try {
-        const summary = await llm.complete({
-          prompt: `Please provide a concise summary of the following text. Focus on the key points and main ideas:\n\n${doc.text}\n\nSummary:`,
-        });
-
-        // Create a new node with the original content and add summary to metadata
-        const node = new TextNode({
-          text: doc.text,
-          metadata: {
-            ...doc.metadata,
-            summary: summary.text,
-          },
-        });
-
-        results.push(node);
-      } catch (error) {
-        logger.error("Error generating summary", { error, documentId: doc.id_ });
-        // If summary generation fails, create a node without summary
-        const node = new TextNode({
-          text: doc.text,
-          metadata: doc.metadata,
-        });
-        results.push(node);
-      }
-    }
-
-    return results;
-  }
-}
 
 export async function generateEmbeddings(
   content: string,
@@ -72,11 +26,8 @@ export async function generateEmbeddings(
     const llm = Settings.llm;
     const pipeline = new IngestionPipeline({
       vectorStore: vectorStore,
-      transformations: [
-        new SummaryExtractor(),
-        new SentenceSplitter({ chunkSize: Settings.chunkSize }),
-        vectorStore.embedModel,
-      ],
+
+      transformations: [new SentenceSplitter({ chunkSize: Settings.chunkSize }), vectorStore.embedModel],
     });
 
     let documentMetadata = data.metadata;
