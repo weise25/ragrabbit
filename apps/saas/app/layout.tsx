@@ -5,8 +5,11 @@ import Providers from "./providers";
 import "./global.css";
 
 export const metadata: Metadata = {
-  title: "RagRabbit",
-  description: "Your all-in-one solution for building powerful RAG applications.",
+  title: "RagRabbit - Admin Dashboard",
+  description: "RagRabbit - Admin Dashboard",
+  icons: {
+    icon: [{ rel: "icon", url: "/logo_small.svg", sizes: "any", type: "image/svg+xml" }],
+  },
 };
 
 export default function RootLayout({

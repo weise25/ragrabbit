@@ -24,13 +24,13 @@ export function DashboardHeader({ signOut }: { signOut: () => Promise<void> }) {
   return (
     <header className="sticky z-50 top-0 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
       <Image
-        src="/logo_small.svg"
+        src="/logo.svg"
         alt="RagRabbit"
         width={0}
         height={0}
         className="inline-block w-8 h-8 align-text-bottom mb-[-1px] mr-[-1em]"
       />
-      <h1 className="text-2xl font-bold text-[#56A101]">RagRabbit</h1>
+      <h1 className="text-2xl font-bold text-accent-foreground">RagRabbit</h1>
       <div className="flex w-full items-center gap-4 md:ml-auto md:gap-2 lg:gap-4">
         <RagRabbitSearch />
         <DropdownMenu>
