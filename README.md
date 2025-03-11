@@ -23,14 +23,18 @@ Self Hosted Site AI Search, LLMs.txt, MCP Server that crawls your content. 1-Cli
 
 [RagRabbit](https://github.com/madarco/ragrabbit) is a [Next.js](https://nextjs.org/) [Turborepo](https://turbo.build/repo) app that uses [Llamaindex](https://github.com/run-llama/LlamaIndexTS) with [pgVector](https://github.com/pgvector/pgvector).
 
-Feature
+Features
 
 - 💬 Chat Widget: Embeddable AI Chat agent and instant Search
 - 🕸️ Website Crawler: scrapes and index pages with pgVector and PostgreSQL
 - 📄 LLMs.txt Generation: fully customizable wiht ToC reorder
-- 🔌 MCP Server: `npx @ragrabbit/mcp` to access your docs from Claude Desktop and Cursor IDE
+- 🔌 [MCP Server](./packages//mcp-server/README.md): `npx @ragrabbit/mcp` to access your docs from Claude Desktop and Cursor IDE
 - 🛠️ Flexible: Authentication, Open Source, API Keys access
 - 🚀 Easy Deployment: One-click setup on Vercel
+
+Integrations:
+
+- [Fumadocs](#fumadocs)
 
 ### Demo
 
@@ -192,6 +196,57 @@ You can configure the search widget by adding the following parameters and use t
 <script>
   window.mountSearch("search-container", { searchPlaceholder: "Search documentation..." });
 </script>
+```
+
+## Integrations
+
+### Fumadocs
+
+Create a component to replace the Search Dialog:
+
+```typescript
+"use client";
+import type { SharedProps } from "fumadocs-ui/components/dialog/search";
+import { RagRabbitModal } from "@ragrabbit/search-react";
+
+export default function SearchDialog({ open, onOpenChange }: SharedProps) {
+  return <RagRabbitModal
+    domain="http://localhost:3000/"
+    open={open}
+    onOpenChange={onOpenChange}
+    />;
+}
+```
+
+Then set it in the `layout.tsx`:
+
+```tsx
+<RootProvider
+  search={{
+    SearchDialog,
+  }}
+>
+  ...
+</RootProvider>
+```
+
+Optionally add the Floating Chat button:
+
+```typescript
+"use client";
+import { RagRabbitChatButton } from "@ragrabbit/search-react";
+
+export default function ChatButton() {
+  return <RagRabbitChatButton domain="http://localhost:3000/" />;
+}
+```
+
+And add it to the `layout.tsx`:
+
+```tsx
+<body className="flex flex-col min-h-screen">
+  <ChatButton />
+  ...
 ```
 
 ## Development
