@@ -4,10 +4,8 @@ import { CheckCircle2, Loader2, Moon, Pause, Play } from "@repo/design/base/icon
 import { EasyTooltip } from "@repo/design/components/tooltip/tooltip";
 import { cn } from "@repo/design/lib/utils";
 import { Button, buttonVariants } from "@repo/design/shadcn/button";
-import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getPendingCountAction, runProcessingNowAction } from "../actions.processing";
 import { useIndexes } from "../providers/indexes-provider";
 
 export default function FrontendJobProcessor() {
@@ -16,9 +14,8 @@ export default function FrontendJobProcessor() {
 
   const [pendingCount, setPendingCount] = useState<number | undefined>(undefined);
   const [sleep, setSleep] = useState(0);
-  const { executeAsync: executeGetPendingCount, isExecuting: isExecutingGetPendingCount } =
-    useAction(getPendingCountAction);
-  const { executeAsync: executeProcessing, isExecuting: isExecutingProcessing } = useAction(runProcessingNowAction);
+  const [isExecutingGetPendingCount, setIsExecutingGetPendingCount] = useState(false);
+  const [isExecutingProcessing, setIsExecutingProcessing] = useState(false);
 
   const [isPaused, setIsPaused] = useState(true);
   const router = useRouter();
@@ -33,19 +30,33 @@ export default function FrontendJobProcessor() {
 
     let res;
     const currentPauseState = wakeUp ?? isPaused;
-    if (currentPauseState) {
-      res = await executeGetPendingCount({});
-    } else {
-      res = await executeProcessing({});
-      // If we processed an item, refresh the page data
-      if (res?.data?.processedIndexId) {
-        await patchIndex([{ id: res.data.processedIndexId, status: "DONE" }]);
-      }
-    }
 
-    setPendingCount(res.data.count);
-    if (res.data.count === 0) {
-      setSleep(sleep + 1);
+    try {
+      if (currentPauseState) {
+        setIsExecutingGetPendingCount(true);
+        const response = await fetch("/dashboard/indexing/api");
+        res = await response.json();
+      } else {
+        setIsExecutingProcessing(true);
+        const response = await fetch("/dashboard/indexing/api", {
+          method: "POST",
+        });
+        res = await response.json();
+        // If we processed an item, refresh the page data
+        if (res?.processedIndexId) {
+          await patchIndex([{ id: res.processedIndexId, status: "DONE" }]);
+        }
+      }
+
+      setPendingCount(res.count);
+      if (res.count === 0) {
+        setSleep(sleep + 1);
+      }
+    } catch (error) {
+      console.error("Error executing job:", error);
+    } finally {
+      setIsExecutingGetPendingCount(false);
+      setIsExecutingProcessing(false);
     }
   }
 
@@ -53,15 +64,7 @@ export default function FrontendJobProcessor() {
   useEffect(() => {
     const interval = setInterval(executeJob, pollingInterval);
     return () => clearInterval(interval);
-  }, [
-    sleep,
-    executeProcessing,
-    executeGetPendingCount,
-    isPaused,
-    isExecutingGetPendingCount,
-    isExecutingProcessing,
-    router,
-  ]);
+  }, [sleep, isPaused, isExecutingGetPendingCount, isExecutingProcessing]);
 
   // Add mouse movement detection to wake up the processor
   useEffect(() => {

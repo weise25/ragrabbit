@@ -14,9 +14,6 @@ export async function POST(req: Request, res: Response) {
   if (!user) {
     return new Response("Unauthorized", { status: 401 });
   }
-  const body = await req.json();
-  const { id } = body;
-
   const { data } = await runProcessingNowAction({});
   return new Response(JSON.stringify(data));
 }

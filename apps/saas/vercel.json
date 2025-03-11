@@ -1,7 +1,0 @@
-{
-  "functions": {
-    "app/**/*.processing.ts": {
-      "maxDuration": 30
-    }
-  }
-}
