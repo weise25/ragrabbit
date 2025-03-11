@@ -40,7 +40,7 @@ Integrations:
 
 View [RagRabbit Demo Page](https://ragrabbit.vercel.app/widget/demo)
 
-![RagRabbit Demo](./apps/docs/public/ragrabbit_demo.png)
+![RagRabbit Demo](./apps/docs/public/ragrabbit.gif)
 
 ## Install
 
