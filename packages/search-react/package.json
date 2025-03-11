@@ -1,12 +1,14 @@
 {
   "name": "@ragrabbit/search-react",
-  "version": "0.1.0",
-  "description": "RagRabbit Search React SDK",
+  "version": "0.1.1",
+  "description": "RagRabbit React SDK",
   "keywords": [
     "react",
     "search",
+    "ai",
+    "rag",
     "widget",
-    "chat"
+    "fumadocs"
   ],
   "author": "Marco D'Alia",
   "license": "MIT",
@@ -34,7 +36,7 @@
     "watch": "tsup --watch",
     "version:patch": "npm version minor",
     "version:beta": "npm version prerelease --preid=beta",
-    "pre:publish": "npm run build",
+    "prepublish": "npm run build",
     "publish": "pnpm publish --no-git-checks"
   },
   "peerDependencies": {

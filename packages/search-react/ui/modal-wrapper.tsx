@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { JSX } from "react";
 import RagRabbitModal, { RagRabbitModalProps } from "./modal";
 
 // This wrapper component ensures type compatibility with NextJS client components

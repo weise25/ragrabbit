@@ -26,7 +26,7 @@
     "watch": "tsc-watch",
     "version:patch": "npm version minor",
     "version:beta": "npm version prerelease --preid=beta",
-    "pre:publish": "npm run build",
+    "prepublish": "npm run build",
     "publish": "pnpm publish --no-git-checks"
   },
   "dependencies": {

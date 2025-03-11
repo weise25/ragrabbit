@@ -204,6 +204,10 @@ You can configure the search widget by adding the following parameters and use t
 
 Create a component to replace the Search Dialog:
 
+```bash
+pnpm add @ragrabbit/search-react
+```
+
 ```typescript
 "use client";
 import type { SharedProps } from "fumadocs-ui/components/dialog/search";

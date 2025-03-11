@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, Fragment } from "react";
+import React, { useState, useEffect, Fragment, JSX } from "react";
 import { createPortal } from "react-dom";
 
 export interface RagRabbitModalProps {
