@@ -163,7 +163,7 @@ export const indexedContentRelations = relations(indexedContentTable, ({ one }) 
 }));
 
 export const EmbeddingDimensions = {
-  openai: 1536,
+  openai: 256, // with text-embedding-3-large custom dimension
   baai: 384,
   xenova: 1536,
 };

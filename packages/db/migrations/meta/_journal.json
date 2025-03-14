@@ -99,6 +99,13 @@
       "when": 1741366706052,
       "tag": "0013_cost_limit",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1741734732637,
+      "tag": "0014_vector_size",
+      "breakpoints": true
     }
   ]
 }

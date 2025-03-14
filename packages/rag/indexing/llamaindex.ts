@@ -6,7 +6,7 @@ import { logger } from "@repo/logger";
 import { Document, IngestionPipeline, SentenceSplitter, Settings } from "llamaindex";
 import { env } from "../env.mjs";
 import { EmbeddingModel } from "../settings";
-import { extractMetadata } from "./metadata.extract";
+import { extractMetadata } from "../scraping/metadata.extract";
 import { RagMetadata } from "@repo/db/schema";
 
 export async function generateEmbeddings(
@@ -27,13 +27,13 @@ export async function generateEmbeddings(
     const pipeline = new IngestionPipeline({
       vectorStore: vectorStore,
 
-      transformations: [new SentenceSplitter({ chunkSize: Settings.chunkSize }), vectorStore.embedModel],
+      transformations: [
+        new SentenceSplitter({ chunkSize: Settings.chunkSize, chunkOverlap: Settings.chunkOverlap }),
+        vectorStore.embedModel,
+      ],
     });
 
     let documentMetadata = data.metadata;
-    if (!documentMetadata) {
-      documentMetadata = await extractMetadata(content, data.url);
-    }
 
     const doc = new Document({
       text: content,

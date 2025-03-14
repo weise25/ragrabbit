@@ -20,6 +20,7 @@ export const editSingleIndexSchema = z.object({
   id: z.number(),
   url: z.string().url(),
   clearFoundFrom: z.boolean().optional(),
+  skip: z.boolean().optional(),
 });
 
 export const removeIndexSchema = z.object({

@@ -160,13 +160,16 @@ export const getAllIndexes = authActionClient.metadata({ name: "getAllIndexes" }
 export const updateIndexAction = authActionClient
   .schema(editSingleIndexSchema)
   .metadata({ name: "updateIndex" })
-  .action(async ({ parsedInput: { id, url, clearFoundFrom }, ctx }) => {
+  .action(async ({ parsedInput: { id, url, clearFoundFrom, skip }, ctx }) => {
     const index = await db
       .update(indexedTable)
       .set({
         url: url,
         normalizedUrl: normalizeUrl(url),
         ...(clearFoundFrom ? { foundFromIndexId: null } : {}),
+        ...(skip
+          ? { skip: true, skipReason: "Manually skipped", status: "SKIPPED" }
+          : { skip: false, skipReason: null, status: "PENDING" }),
       })
       .where(and(eq(indexedTable.id, id), eq(indexedTable.organizationId, ctx.session.user.organizationId)))
       .returning();
@@ -175,7 +178,9 @@ export const updateIndexAction = authActionClient
       throw new UnauthorizedError("Index not found or not authorized");
     }
 
-    await jobs.triggerProcessing([id], ctx.session.user.organizationId);
+    if (!skip) {
+      await jobs.triggerProcessing([id], ctx.session.user.organizationId);
+    }
     revalidatePath("/dashboard/indexing");
     return { success: true, data: index[0] };
   });

@@ -61,7 +61,11 @@ export default function AddCrawlFormDialog({
   });
 
   // Handle action call manually to manage Dialog close:
-  const { refresh: refreshIndexes } = useIndexes();
+  let refreshIndexes = () => Promise.resolve();
+  try {
+    const { refresh } = useIndexes();
+    refreshIndexes = refresh;
+  } catch (e) {}
   const [internalOpen, setInternalOpen] = useState(false);
   const open = controlledOpen ?? internalOpen;
   const setOpen = onOpenChange ?? setInternalOpen;

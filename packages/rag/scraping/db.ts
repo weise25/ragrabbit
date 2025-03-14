@@ -6,9 +6,6 @@ import { logger } from "@repo/logger";
 import { scrapeUrl } from "./scraping";
 import crypto from "crypto";
 
-const CHUNK_SIZE = 1024;
-const MAX_CHUNKS = 20;
-
 export async function scrapeDbItem(indexedId: number) {
   logger.info("Scraping content", { indexedId });
 
@@ -60,11 +57,6 @@ export async function scrapeDbItem(indexedId: number) {
 
   if (!content) {
     throw new UserError("No content found in page");
-  }
-
-  if (content.length > CHUNK_SIZE * MAX_CHUNKS) {
-    logger.warn("Content too large, truncating", { bytes: content.length, maxBytes: CHUNK_SIZE * MAX_CHUNKS });
-    content = content.slice(0, CHUNK_SIZE * MAX_CHUNKS);
   }
 
   // check if this page is already indexed as a different url:

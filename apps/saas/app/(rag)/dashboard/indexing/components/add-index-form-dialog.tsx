@@ -25,10 +25,14 @@ import { addIndexAction, updateIndexAction } from "../actions";
 import { addIndexSchema, editSingleIndexSchema } from "../actions.schema";
 import { useIndexes } from "../providers/indexes-provider";
 
-interface AddIndexFormProps {
+export interface EditIndexProps {
   url?: string;
   indexId?: number;
   foundFromIndexId?: number | null;
+  skip?: boolean;
+}
+
+interface AddIndexFormProps extends EditIndexProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
@@ -37,11 +41,14 @@ export default function AddIndexForm({
   url,
   indexId,
   foundFromIndexId,
+  skip,
   open: controlledOpen,
   onOpenChange,
 }: AddIndexFormProps) {
   // Start with an empty field:
-  const defaultValues = indexId ? { id: indexId, url, clearFoundFrom: !!foundFromIndexId } : { urls: [{ value: "" }] };
+  const defaultValues = indexId
+    ? { id: indexId, url, clearFoundFrom: !!foundFromIndexId, skip }
+    : { urls: [{ value: "" }] };
   const formSchema = indexId ? editSingleIndexSchema : addIndexSchema;
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -57,7 +64,12 @@ export default function AddIndexForm({
   });
 
   // Handle action call manually to manage Dialog close:
-  const { refresh: refreshIndexes } = useIndexes();
+  let refreshIndexes = () => Promise.resolve();
+  try {
+    const { refresh } = useIndexes();
+    refreshIndexes = refresh;
+  } catch (e) {}
+
   const [internalOpen, setInternalOpen] = useState(false);
   const open = controlledOpen ?? internalOpen;
   const setOpen = onOpenChange ?? setInternalOpen;
@@ -98,14 +110,23 @@ export default function AddIndexForm({
               addButtonLabel="Add URL"
             />
           )}
-          {foundFromIndexId && (
+          {indexId && foundFromIndexId && (
             <div className="flex flex-col gap-2 mt-4">
-              <p className="text-sm text-muted-foreground">This page was found during Crawling.</p>
               <EasyFormFieldSwitch
                 form={form}
                 name="clearFoundFrom"
-                label="Make it standalone"
-                description="This will remove the connection to the original crawl"
+                label="Keep this page"
+                description="This will preserve this page if not found in the next crawl"
+              />
+            </div>
+          )}
+          {indexId && (
+            <div className="flex flex-col gap-2 mt-4">
+              <EasyFormFieldSwitch
+                form={form}
+                name="skip"
+                label="Skip this page"
+                description="Prevent this page from being scraped and indexed"
               />
             </div>
           )}

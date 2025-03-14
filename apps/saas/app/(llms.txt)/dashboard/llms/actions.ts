@@ -1,11 +1,11 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { authActionClient } from "@repo/actions";
 import db from "@repo/db";
-import { indexedTable, llamaindexEmbedding, llmstxtTable, indexedContentTable } from "@repo/db/schema";
-import { llmstxtTypeEnum, LlmstxtOrderedContentIds } from "@repo/db/schema/llmstxt";
-import { eq, sql, count, and } from "@repo/db/drizzle";
-import { actionClientWithMeta, authActionClient } from "@repo/actions";
+import { countDistinct, eq, sql } from "@repo/db/drizzle";
+import { indexedContentTable, indexedTable, llmstxtTable } from "@repo/db/schema";
+import { LlmstxtOrderedContentIds } from "@repo/db/schema/llmstxt";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getLlmsConfig, getPageTree, TreePage } from "../../utils";
 
@@ -17,13 +17,13 @@ export async function revalidateCache(organizationId: number) {
 export const getLlmStats = authActionClient.metadata({ name: "getLlmStats" }).action(async ({ ctx }) => {
   const stats = await db
     .select({
-      totalIndexed: count(indexedTable.id),
-      totalTokens: sql<number>`sum((${llamaindexEmbedding.metadata} ->> 'tokens')::int)`,
-      totalSizeBytes: sql<number>`sum(LENGTH(${llamaindexEmbedding.document}))`,
+      totalIndexed: countDistinct(indexedTable.id),
+      totalTokens: sql<number>`sum((${indexedTable.metadata} ->> 'tokens')::int)`,
+      totalSizeBytes: sql<number>`sum(LENGTH(${indexedContentTable.content}))`,
       lastUpdated: sql<Date>`max(${indexedTable.updatedAt})`,
     })
     .from(indexedTable)
-    .leftJoin(llamaindexEmbedding, eq(indexedTable.id, llamaindexEmbedding.contentId))
+    .leftJoin(indexedContentTable, eq(indexedTable.id, indexedContentTable.indexId))
     .where(eq(indexedTable.organizationId, ctx.session.user.organizationId))
     .limit(1);
 

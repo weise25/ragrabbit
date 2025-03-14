@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev --port 3000",
     "build": "next build",
+    "build:reset": "pnpm db:reset && next build",
     "vercel-build": "pnpm db:migrate && next build",
     "start": "next start",
     "lint": "next lint",

@@ -1,4 +1,4 @@
-import { UserError } from "@repo/core";
+import { RateLimitError, UserError } from "@repo/core";
 import db from "@repo/db";
 import { and, eq } from "@repo/db/drizzle";
 import { Indexed, indexedTable } from "@repo/db/schema";
@@ -7,6 +7,7 @@ import { generateEmbeddings } from "../indexing/llamaindex";
 import { scrapeDbItem } from "../scraping/db";
 import { crawlDbItem } from "../scraping/dbCrawl";
 import { setTimeout } from "timers/promises";
+import OpenAI from "openai";
 
 export type ProcessResult = {
   newIndexedIds: number[];
@@ -20,6 +21,9 @@ export async function processWithRetry(indexedId: number, maxRetries = 1): Promi
       return await processDbItem(indexedId);
     } catch (e) {
       logger.error({ indexedId, error: e.message }, "Error processing content");
+      if (e instanceof RateLimitError) {
+        throw e;
+      }
       if (i === maxRetries - 1) {
         return await saveDbItemFailure(indexedId, e);
       } else {

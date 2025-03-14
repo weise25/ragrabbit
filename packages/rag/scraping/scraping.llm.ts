@@ -4,6 +4,8 @@ import { codeBlock } from "common-tags";
 import OpenAI from "openai";
 import { env } from "../env.mjs";
 import { countTokens } from "../indexing/tokens";
+import { ChatCompletionMessageParam } from "openai/resources/index.mjs";
+import { RateLimitError } from "@repo/core";
 
 const log = logger.child({
   context: "Scraping",
@@ -64,12 +66,11 @@ export async function reformatContentLLM(
     throw new Error(`OPENAI_API_KEY is required to get metadata`);
   }
 
-  const openai = new OpenAI();
-  const response = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    temperature: 0.1,
+  log.info("Reformatting content with LLM");
 
-    messages: [
+  try {
+    const openai = new OpenAI();
+    const promptMessages: ChatCompletionMessageParam[] = [
       {
         role: "system",
         content: prompt.replace("{{url}}", url || "").replace("{{title}}", title || ""),
@@ -78,51 +79,94 @@ export async function reformatContentLLM(
         role: "user",
         content: text,
       },
-    ],
-  });
-  const message = response.choices[0].message;
-  if (message.refusal) {
-    log.warn(
-      {
+    ];
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      temperature: 0.1,
+
+      messages: promptMessages,
+    });
+
+    let message = response.choices[0].message;
+    let responseContent = message.content;
+    let responseContinuation = null;
+    if (response.choices?.[0]?.finish_reason === "length") {
+      log.info("Asking for continuation");
+      // Ask for continuation:
+      responseContinuation = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        temperature: 0.1,
+        messages: [
+          ...promptMessages,
+          {
+            role: message.role,
+            content: message.content,
+          },
+          {
+            role: "user",
+            content: "Continue the content...",
+          },
+        ],
+      });
+
+      if (responseContinuation.choices?.[0]?.finish_reason === "length") {
+        console.error({ responseContinuation }, "Failed to continue content");
+        return;
+      }
+
+      message = responseContinuation.choices[0].message;
+      responseContent += message.content;
+    }
+
+    if (message.refusal) {
+      console.error("Failed to reformat content with LLM", {
         refusal: message.refusal,
         message,
+      });
+      return;
+    }
+
+    const promptTokens = (response.usage?.prompt_tokens ?? 0) + (responseContinuation?.usage?.prompt_tokens ?? 0);
+    const completionTokens =
+      (response.usage?.completion_tokens ?? 0) + (responseContinuation?.usage?.completion_tokens ?? 0);
+    log.debug(
+      {
+        promptTokens,
+        completionTokens,
+        cost: (promptTokens * (0.015 / 1_000_000) + completionTokens * (0.6 / 1_000_000)).toFixed(4),
       },
-      "Failed to parse metadata"
+      "Reformatted content with LLM"
     );
-    return;
+
+    const startIndex = responseContent.indexOf("---") + 3;
+    const endIndex = responseContent.indexOf("---", startIndex);
+
+    if (startIndex === -1 || endIndex === -1) {
+      log.warn({ message }, "Failed to find metadata markers");
+      return;
+    }
+
+    const jsonPart = responseContent.substring(startIndex, endIndex).trim();
+    const content = responseContent.substring(endIndex + 3).trim();
+
+    const parsed = metadataSchema.parse(JSON.parse(jsonPart));
+    return {
+      content,
+      metadata: {
+        pageTitle: parsed.title,
+        pageDescription: parsed.description,
+        pageParentUrl: normalizeUrlOrNull(parsed.parentUrl, url),
+        keywords: parsed.keywords || [],
+        questions: parsed.questions || [],
+        entities: (parsed.entities as any) || [],
+        tokens: await countTokens(content),
+      },
+    };
+  } catch (e) {
+    if (e instanceof OpenAI.RateLimitError) {
+      throw new RateLimitError("OpenAI Rate limit reached");
+    }
+    throw e;
   }
-
-  log.debug(
-    {
-      cost:
-        (response.usage?.prompt_tokens ?? 0) * (0.015 / 1_000_000) +
-        (response.usage?.completion_tokens ?? 0) * (0.6 / 1_000_000),
-    },
-    "Reformatted content with LLM"
-  );
-
-  const startIndex = message.content.indexOf("---") + 3;
-  const endIndex = message.content.indexOf("---", startIndex);
-
-  if (startIndex === -1 || endIndex === -1) {
-    log.warn({ message }, "Failed to find metadata markers");
-    return;
-  }
-
-  const jsonPart = message.content.substring(startIndex, endIndex).trim();
-  const content = message.content.substring(endIndex + 3).trim();
-
-  const parsed = metadataSchema.parse(JSON.parse(jsonPart));
-  return {
-    content,
-    metadata: {
-      pageTitle: parsed.title,
-      pageDescription: parsed.description,
-      pageParentUrl: normalizeUrlOrNull(parsed.parentUrl, url),
-      keywords: parsed.keywords || [],
-      questions: parsed.questions || [],
-      entities: (parsed.entities as any) || [],
-      tokens: await countTokens(content),
-    },
-  };
 }

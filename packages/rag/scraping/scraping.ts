@@ -1,4 +1,4 @@
-import { UserError } from "@repo/core";
+import { RateLimitError, UserError } from "@repo/core";
 import { logger } from "@repo/logger";
 import * as cheerio from "cheerio";
 import * as contentTypeHelper from "content-type";
@@ -6,8 +6,12 @@ import { NodeHtmlMarkdown } from "node-html-markdown";
 import { RagMetadata } from "@repo/db/schema";
 import { defaultATransformer } from "./node-markdown.override";
 import { reformatContentLLM } from "./scraping.llm";
+import { extractMetadata } from "./metadata.extract";
 
-const MAX_SCRAPE_SIZE = process.env.MAX_SCRAPE_SIZE ? parseInt(process.env.MAX_SCRAPE_SIZE) : 1024 * 200;
+const MAX_SCRAPE_SIZE = process.env.MAX_SCRAPE_SIZE ? parseInt(process.env.MAX_SCRAPE_SIZE) : 1024 * 400;
+const MAX_LLM_TRANSFORM_SIZE = process.env.MAX_LLM_TRANSFORM_SIZE
+  ? parseInt(process.env.MAX_LLM_TRANSFORM_SIZE)
+  : 1024 * 55;
 
 export async function scrapeUrl(
   url: string,
@@ -35,7 +39,8 @@ export async function scrapeUrl(
     supportedContentTypes: ["text/html", "application/xhtml+xml", "text/plain", "text/markdown", "text/x-markdown"],
     ...options,
   };
-  logger.info("Scraping URL", { url, options });
+  logger.info({ url }, "Scraping URL");
+
   const urlParts = new URL(url);
   const hostname = urlParts.hostname.toLowerCase().replace("www.", "");
   const domain = hostname.split(".").slice(-2).join(".");
@@ -43,6 +48,9 @@ export async function scrapeUrl(
   let redirectedUrl = url;
   if (response.redirected) {
     redirectedUrl = response.url;
+  }
+  if (response.status === 429) {
+    throw new RateLimitError("Rate limit reached");
   }
   if (response.status !== 200) {
     throw new UserError("Failed to fetch, error from server: " + response.statusText + " status: " + response.status);
@@ -163,14 +171,34 @@ export async function scrapeUrl(
 
   $("script, style, noscript").remove();
 
+  // Strip every attribute from every element:
+  $("*").each((_, el) => {
+    const attributes = $(el).attr();
+    for (const attribute of Object.keys(attributes)) {
+      // Except:
+      if (["href", "src", "alt", "title", "id", "alt"].includes(attribute)) {
+        continue;
+      }
+      $(el).removeAttr(attribute);
+    }
+  });
+
   const body = $("body").html()?.toString();
   if (!body) {
     throw new UserError("No body content found in page");
   }
+  logger.debug({ bytes: body.length }, "Extracted body content");
 
   let content: string;
   let metadata: Partial<RagMetadata> = {};
-  if (options.transformStrategy == "markdown") {
+
+  if (options.transformStrategy == "markdown" || body.length > MAX_LLM_TRANSFORM_SIZE) {
+    if (body.length > MAX_LLM_TRANSFORM_SIZE) {
+      logger.warn(
+        { bytes: body.length, maxBytes: MAX_LLM_TRANSFORM_SIZE },
+        "Content too large for LLM transform, using Markdown"
+      );
+    }
     // Translate to markdown:
     content = NodeHtmlMarkdown.translate(
       body,
@@ -186,6 +214,7 @@ export async function scrapeUrl(
         ...defaultATransformer,
       }
     );
+    metadata = await extractMetadata(content, url);
   } else {
     const result = await reformatContentLLM(body, url, title);
     if (!result) {
@@ -196,9 +225,11 @@ export async function scrapeUrl(
   }
 
   if (content.length > MAX_SCRAPE_SIZE) {
-    logger.warn("Content too large, truncating", { bytes: content.length, maxBytes: MAX_SCRAPE_SIZE });
+    logger.warn({ bytes: content.length, maxBytes: MAX_SCRAPE_SIZE }, "Content too large, truncating");
     content = content.slice(0, MAX_SCRAPE_SIZE);
   }
+
+  logger.debug({ bytes: content.length }, "Markdown content extracted");
 
   return { title, content, description, links, canonicalUrl, contentType: contentType.type, metadata };
 }

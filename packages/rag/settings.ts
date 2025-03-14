@@ -3,6 +3,7 @@ import { OpenAI } from "@llamaindex/openai";
 import { Anthropic } from "@llamaindex/anthropic";
 import { Groq } from "@llamaindex/groq";
 import { env } from "./env.mjs";
+import { EmbeddingDimensions } from "@repo/db/schema";
 
 export enum LLMEnum {
   groq = "Groq",
@@ -23,6 +24,7 @@ export const chunkSize = {
 };
 
 Settings.chunkSize = chunkSize[EmbeddingModel[env.EMBEDDING_MODEL || "openai"]] || 512;
+Settings.chunkOverlap = 200;
 
 export let LLM: LLMEnum;
 if (env.LLM_MODEL === "groq") {
@@ -59,7 +61,10 @@ if (env.LLM_MODEL === "groq") {
 const embeddingModel = EmbeddingModel[env.EMBEDDING_MODEL];
 
 if (embeddingModel === EmbeddingModel.openai) {
-  Settings.embedModel = new OpenAIEmbedding();
+  Settings.embedModel = new OpenAIEmbedding({
+    model: "text-embedding-3-large",
+    dimensions: EmbeddingDimensions.openai,
+  });
 } else {
   // Allows to use local models for embeddings:
   const { HuggingFaceEmbedding } = await import("@llamaindex/huggingface");

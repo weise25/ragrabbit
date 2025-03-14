@@ -1,30 +1,10 @@
 import { openai } from "@ai-sdk/openai";
-import db from "@repo/db";
-import { and, eq } from "@repo/db/drizzle";
-import {
-  Chat,
-  chatsTable,
-  messagesTable,
-  NewChat,
-  Message as DbMessage,
-  NewMessage as DbNewMessage,
-} from "@repo/db/schema";
+import { UserError } from "@repo/core";
 import { Source } from "@repo/design/components/chat/source-box";
-import { logger } from "@repo/logger";
 import { getPrompt, getRagRetriever } from "@repo/rag/answering/llamaindex";
 import { Metadata, MetadataMode } from "@repo/rag/llamaindex.mjs";
-import {
-  appendClientMessage,
-  createDataStreamResponse,
-  createIdGenerator,
-  generateId,
-  Message,
-  smoothStream,
-  streamText,
-  TextPart,
-} from "ai";
+import { appendClientMessage, createDataStreamResponse, createIdGenerator, generateId, Message, streamText } from "ai";
 import { checkLimitsIp, checkLimitsUsage, loadMessages, ResponseMessage, saveMessages } from "./db";
-import { RateLimitError, UserError } from "@repo/core";
 
 export const maxDuration = 30;
 
@@ -124,7 +104,7 @@ async function handleRequest(ip: string, orgId: number, req: Request, res: Respo
       const assistantMessage: Message = {
         id: generateId(),
         role: "assistant",
-        content: "Use the following information to answer the question: " + content.slice(0, SOURCES_RAG).join("\n"),
+        content: "Use the following information to answer the question: \n" + content.slice(0, SOURCES_RAG).join("\n"),
       };
       let messages = await messagesPromise;
       messages = [...messages, assistantMessage];

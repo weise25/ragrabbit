@@ -46,11 +46,11 @@ let authActionClient = actionClientWithMeta.use(async ({ next, metadata, clientI
   const session = await auth();
   if (metadata.allowUnauthenticated !== true && (!session || !session.user || !session.user.id)) {
     logger.child({ context: metadata.name }).info("Redirecting to signin");
-    throw new UnauthorizedError();
+    throw new UnauthorizedError("Unauthorized");
   }
   if ((clientInput as any).orgId) {
     if (session.user.organizationId !== (clientInput as any).orgId) {
-      throw new UnauthorizedError();
+      throw new UnauthorizedError("Unauthorized");
     }
   }
   return next({
