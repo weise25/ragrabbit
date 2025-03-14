@@ -8,7 +8,7 @@ import { checkLimitsIp, checkLimitsUsage, loadMessages, ResponseMessage, saveMes
 
 export const maxDuration = 30;
 
-const SOURCES_RAG = 3;
+const SOURCES_RAG = 8;
 
 export async function POST(req: Request, res: Response) {
   const orgId = 1;
@@ -82,6 +82,7 @@ async function handleRequest(ip: string, orgId: number, req: Request, res: Respo
         let text = "--- \n";
         text += "Source: " + metadata.pageTitle + "\n";
         text += "URL: " + metadata.pageUrl + "\n";
+        text += "---\n";
         text += source.node.getContent(MetadataMode.NONE) + "\n";
         content.push(text);
 
@@ -98,15 +99,19 @@ async function handleRequest(ip: string, orgId: number, req: Request, res: Respo
       };
       // Send the annotation immediately by writing an empty text part first
       dataStream.writeMessageAnnotation(sourcesAnnotation);
-
-      // Add context to the messages:
       handleAbort(signal);
+
+      let messages = await messagesPromise;
+      const contextMessage = "Use the following documentation to answer the question";
+      // Skip the sources from previous RAG calls to save space:
+      messages = messages.filter((m) => !m.content.startsWith(contextMessage));
+
+      // Add the new context to chat:
       const assistantMessage: Message = {
         id: generateId(),
         role: "assistant",
-        content: "Use the following information to answer the question: \n" + content.slice(0, SOURCES_RAG).join("\n"),
+        content: contextMessage + ": \n" + content.slice(0, SOURCES_RAG).join("\n"),
       };
-      let messages = await messagesPromise;
       messages = [...messages, assistantMessage];
 
       // append the new message:
