@@ -1,33 +1,31 @@
 import { RateLimitError, UserError } from "@repo/core";
+import { RagMetadata } from "@repo/db/schema";
 import { logger } from "@repo/logger";
 import * as cheerio from "cheerio";
 import * as contentTypeHelper from "content-type";
 import { NodeHtmlMarkdown } from "node-html-markdown";
-import { RagMetadata } from "@repo/db/schema";
 import { defaultATransformer } from "./node-markdown.override";
-import { reformatContentLLM } from "./scraping.llm";
-import { extractMetadata } from "./metadata.extract";
+import { extractMetadataLLM, reformatAndExtractMetaLLM } from "./scraping.llm";
 
 const MAX_SCRAPE_SIZE = process.env.MAX_SCRAPE_SIZE ? parseInt(process.env.MAX_SCRAPE_SIZE) : 1024 * 400;
 const MAX_LLM_TRANSFORM_SIZE = process.env.MAX_LLM_TRANSFORM_SIZE
   ? parseInt(process.env.MAX_LLM_TRANSFORM_SIZE)
   : 1024 * 55;
 
-export async function scrapeUrl(
-  url: string,
-  options: {
-    stripLinks?: boolean;
-    stripImages?: boolean;
-    stripHeader?: boolean;
-    stripFooter?: boolean;
-    stripQueries?: string;
-    allowSubdomains?: boolean;
-    allowLinksRegexp?: string;
-    excludeLinksRegexp?: string;
-    supportedContentTypes?: string[];
-    transformStrategy?: "llm" | "markdown";
-  }
-) {
+export type ScrapeOptions = {
+  stripLinks?: boolean;
+  stripImages?: boolean;
+  stripHeader?: boolean;
+  stripFooter?: boolean;
+  stripQueries?: string;
+  allowSubdomains?: boolean;
+  allowLinksRegexp?: string;
+  excludeLinksRegexp?: string;
+  supportedContentTypes?: string[];
+  transformStrategy?: "llm" | "markdown";
+};
+
+export async function scrapeUrl(url: string, options: ScrapeOptions) {
   options = {
     stripLinks: false,
     stripImages: true,
@@ -189,9 +187,12 @@ export async function scrapeUrl(
   }
   logger.debug({ bytes: body.length }, "Extracted body content");
 
+  return { body, title, description, links, canonicalUrl, contentType: contentType.type };
+}
+
+export async function cleanAndExtraMetadata(options: ScrapeOptions, body: string, url: string, title: string) {
   let content: string;
   let metadata: Partial<RagMetadata> = {};
-
   if (options.transformStrategy == "markdown" || body.length > MAX_LLM_TRANSFORM_SIZE) {
     if (body.length > MAX_LLM_TRANSFORM_SIZE) {
       logger.warn(
@@ -214,9 +215,9 @@ export async function scrapeUrl(
         ...defaultATransformer,
       }
     );
-    metadata = await extractMetadata(content, url);
+    metadata = await extractMetadataLLM(content, url);
   } else {
-    const result = await reformatContentLLM(body, url, title);
+    const result = await reformatAndExtractMetaLLM(body, url, title);
     if (!result) {
       throw new UserError("Failed to reformat content");
     }
@@ -230,6 +231,5 @@ export async function scrapeUrl(
   }
 
   logger.debug({ bytes: content.length }, "Markdown content extracted");
-
-  return { title, content, description, links, canonicalUrl, contentType: contentType.type, metadata };
+  return { content, metadata };
 }

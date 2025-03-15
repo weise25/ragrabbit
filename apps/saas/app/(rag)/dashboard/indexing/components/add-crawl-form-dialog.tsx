@@ -84,7 +84,10 @@ export default function AddCrawlFormDialog({
     if (result?.data?.success) {
       form.reset();
       setOpen(false);
-      await refreshIndexes();
+      if (!indexId) {
+        // TODO: a bug with a refresh on edit, disabled for now
+        await refreshIndexes();
+      }
     }
     return result;
   };
@@ -110,6 +113,18 @@ export default function AddCrawlFormDialog({
                 name="scrapeOptions.maxDepth"
                 title="Max Depth"
                 description="Number of links to follow from the starting URL"
+              />
+
+              <EasyFormFieldSwitch
+                form={form}
+                name="scrapeOptions.transformStrategy"
+                title="Transform Strategy"
+                description="Better results with LLM, but slower"
+                label="Transform Strategy"
+                values={[
+                  { label: "Markdown", value: "markdown" },
+                  { label: "LLM", value: "llm" },
+                ]}
               />
 
               <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>

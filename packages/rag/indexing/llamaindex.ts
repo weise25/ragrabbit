@@ -1,13 +1,11 @@
 import { PGVectorStore } from "@llamaindex/postgres";
 import db, { pool } from "@repo/db";
 import { eq } from "@repo/db/drizzle";
-import { EmbeddingDimensions, llamaindexEmbedding } from "@repo/db/schema";
+import { EmbeddingDimensions, llamaindexEmbedding, RagMetadata } from "@repo/db/schema";
 import { logger } from "@repo/logger";
 import { Document, IngestionPipeline, SentenceSplitter, Settings } from "llamaindex";
 import { env } from "../env.mjs";
 import { EmbeddingModel } from "../settings";
-import { extractMetadata } from "../scraping/metadata.extract";
-import { RagMetadata } from "@repo/db/schema";
 
 export async function generateEmbeddings(
   content: string,
@@ -21,7 +19,7 @@ export async function generateEmbeddings(
   }
 ) {
   try {
-    logger.info("Generating embeddings", { contentId: data.id });
+    logger.info("Generating embeddings", { contentId: data.id, url: data.url });
     const vectorStore = await getVectorStore();
     const llm = Settings.llm;
     const pipeline = new IngestionPipeline({

@@ -84,7 +84,10 @@ export default function AddIndexForm({
     if (result?.data?.success) {
       form.reset();
       setOpen(false);
-      await refreshIndexes();
+      if (!indexId) {
+        // TODO: a bug with a refresh on edit, disabled for now
+        await refreshIndexes();
+      }
     }
     return result;
   };

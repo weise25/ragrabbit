@@ -109,7 +109,7 @@ async function _saveMessages(
   if (assistantMessage) {
     const newAssistantMessage: Partial<Message> & DbNewMessage & { tokenCount: number } = {
       chatId: chat[0].id,
-      role: "system", // OpenAI API supports multiple system messages, but others don't.
+      role: "system", // NB: OpenAI API supports multiple system messages, but others don't.
       content: assistantMessage.content,
       data: assistantMessage.data,
       tokenCount: await countTokens(assistantMessage.content),

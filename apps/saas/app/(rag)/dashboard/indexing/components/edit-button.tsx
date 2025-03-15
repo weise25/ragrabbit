@@ -17,7 +17,6 @@ interface EditButtonProps {
 export default function EditButton({ index, variant = "default", size = "default", className }: EditButtonProps) {
   const [showEditDialog, setShowEditDialog] = useState(false);
 
-  console.log(index);
   const editIndexProps: EditIndexProps = {
     url: index.url,
     indexId: index.id,

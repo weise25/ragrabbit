@@ -19,7 +19,6 @@ export const metadata: Metadata = {
 export default async function IndexesPage() {
   const session = await authOrLogin();
   const { data: initialIndexes } = await getAllIndexes({});
-
   return (
     <CRUDProvider initialData={initialIndexes}>
       <div className="flex items-center justify-between space-y-2 mb-8">

@@ -1,20 +1,18 @@
+import { RateLimitError } from "@repo/core";
 import { metadataSchema, normalizeUrlOrNull, RagMetadata } from "@repo/db/schema";
 import { logger } from "@repo/logger";
 import { codeBlock } from "common-tags";
 import OpenAI from "openai";
+import { zodResponseFormat } from "openai/helpers/zod.mjs";
+import { ChatCompletionMessageParam } from "openai/resources/index.mjs";
 import { env } from "../env.mjs";
 import { countTokens } from "../indexing/tokens";
-import { ChatCompletionMessageParam } from "openai/resources/index.mjs";
-import { RateLimitError } from "@repo/core";
 
 const log = logger.child({
   context: "Scraping",
 });
 
-const prompt = codeBlock`
-Extract informations and format the following HTML body content in Markdown:
-
-Informations to extract:
+const medatadaList = codeBlock`
  - title: The title of the page, if a title is present use that, but remove brands or other SEO items
  - description: A short description of the page (max 100 characters)
  - parentUrl: The URL of the parent of this page in the TOC, different from the current page URL. 
@@ -23,6 +21,13 @@ Informations to extract:
  - keywords: A list of keywords (max 10)
  - questions: A list of questions that can be answered by the page (max 5)
  - entities: A list of entities that can be extracted from the page (max 5)
+ `;
+
+const prompt = codeBlock`
+Extract informations and format the following HTML body content in Markdown:
+
+Informations to extract:
+${medatadaList}
 
 Instructions on how to format the HTML body content in Markdown:
  - don't include \`\`\`markdown at the beginning or end of the output
@@ -57,7 +62,16 @@ Output the extracted information in JSON, and the content in Markdown format, eg
 ...content formatted in markdown...
 `;
 
-export async function reformatContentLLM(
+const medatadaPrompt = codeBlock`
+Extract from the following web page in markdown format:
+${medatadaList}
+
+Current page url: {{url}}
+
+Output the result in JSON format.
+`;
+
+export async function reformatAndExtractMetaLLM(
   text: string,
   url: string,
   title: string
@@ -147,9 +161,9 @@ export async function reformatContentLLM(
       return;
     }
 
-    const jsonPart = responseContent.substring(startIndex, endIndex).trim();
     const content = responseContent.substring(endIndex + 3).trim();
 
+    const jsonPart = responseContent.substring(startIndex, endIndex).trim();
     const parsed = metadataSchema.parse(JSON.parse(jsonPart));
     return {
       content,
@@ -162,6 +176,62 @@ export async function reformatContentLLM(
         entities: (parsed.entities as any) || [],
         tokens: await countTokens(content),
       },
+    };
+  } catch (e) {
+    if (e instanceof OpenAI.RateLimitError) {
+      throw new RateLimitError("OpenAI Rate limit reached");
+    }
+    throw e;
+  }
+}
+
+export async function extractMetadataLLM(text: string, url: string): Promise<Partial<RagMetadata> | undefined> {
+  if (!env.OPENAI_API_KEY) {
+    throw new Error(`OPENAI_API_KEY is required to get metadata`);
+  }
+
+  log.debug({ url, bytes: text.length }, "Extracting metadata with LLM");
+  const openai = new OpenAI();
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      response_format: zodResponseFormat(metadataSchema, "metadata"),
+      max_tokens: 5000,
+      temperature: 0.2,
+
+      messages: [
+        {
+          role: "system",
+          content: medatadaPrompt.replace("{{url}}", url || ""),
+        },
+        {
+          role: "user",
+          content: text,
+        },
+      ],
+    });
+
+    const message = response.choices[0].message;
+    if (message.refusal) {
+      log.warn(
+        {
+          refusal: message.refusal,
+          message,
+        },
+        "Failed to parse metadata"
+      );
+      return;
+    }
+
+    const parsed = metadataSchema.parse(JSON.parse(message.content));
+    return {
+      pageTitle: parsed.title,
+      pageDescription: parsed.description,
+      pageParentUrl: normalizeUrlOrNull(parsed.parentUrl, url),
+      keywords: parsed.keywords || [],
+      questions: parsed.questions || [],
+      entities: (parsed.entities as any) || [],
+      tokens: await countTokens(text),
     };
   } catch (e) {
     if (e instanceof OpenAI.RateLimitError) {

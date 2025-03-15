@@ -18,13 +18,13 @@ export enum EmbeddingModel {
 }
 
 export const chunkSize = {
-  [EmbeddingModel.openai]: 1024,
+  [EmbeddingModel.openai]: 800,
   [EmbeddingModel.baai]: 512,
   [EmbeddingModel.xenova]: 512,
 };
 
 Settings.chunkSize = chunkSize[EmbeddingModel[env.EMBEDDING_MODEL || "openai"]] || 512;
-Settings.chunkOverlap = 200;
+Settings.chunkOverlap = 400;
 
 export let LLM: LLMEnum;
 if (env.LLM_MODEL === "groq") {

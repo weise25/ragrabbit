@@ -21,12 +21,6 @@ export async function generateEmbeddingsDb(indexedId: number) {
     throw new UserError("Index page not scraped yet");
   }
 
-  logger.debug("Generating embeddings", {
-    indexedId: indexed.id,
-    url: indexed.url,
-    title: indexed.title?.substring(0, 20),
-  });
-
   const nodeIds = await generateEmbeddings(indexed.indexedContent.content, {
     id: "" + indexed.id,
     url: indexed.url,
