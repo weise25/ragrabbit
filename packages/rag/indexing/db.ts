@@ -34,7 +34,7 @@ export async function generateEmbeddingsDb(indexedId: number) {
   await db
     .update(indexedTable)
     .set({
-      status: "DONE",
+      status: indexed.doCrawl ? "PENDING_CLEAN" : "DONE",
       indexedAt: new Date(),
     } as Indexed)
     .where(eq(indexedTable.id, indexed.id));

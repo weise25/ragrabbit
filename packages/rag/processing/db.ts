@@ -3,12 +3,11 @@ import db from "@repo/db";
 import { and, eq } from "@repo/db/drizzle";
 import { Indexed, indexedTable, IndexStatus } from "@repo/db/schema";
 import { logger } from "@repo/logger";
+import { setTimeout } from "timers/promises";
+import { generateEmbeddingsDb } from "../indexing/db";
 import { generateEmbeddings } from "../indexing/llamaindex";
 import { scrapeDbItem } from "../scraping/db";
 import { crawlDbItem } from "../scraping/dbCrawl";
-import { setTimeout } from "timers/promises";
-import OpenAI from "openai";
-import { generateEmbeddingsDb } from "../indexing/db";
 
 export type ProcessResult = {
   newIndexedIds: number[];
@@ -89,13 +88,7 @@ export async function processDbItem(indexedId: number): Promise<ProcessResult> {
     //Fetch page content and generate embeddings:
     const { indexed, scrapeData, success, newIndexedIds: newIndexedIdsFromScrape } = await scrapeDbItem(indexedId);
 
-    if (
-      !scrapeData ||
-      !scrapeData.content ||
-      !success ||
-      indexed?.status == "DONE" ||
-      indexed?.status == "PENDING_CLEAN"
-    ) {
+    if (!success || indexed?.status == "DONE" || indexed?.status == "PENDING_CLEAN") {
       logger.info({ indexedId, success, status: indexed?.status }, "Skipping page");
       return {
         newIndexedIds: [],
