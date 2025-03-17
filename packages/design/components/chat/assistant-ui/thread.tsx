@@ -316,47 +316,45 @@ const MyAssistantMessage: FC = () => {
   // Show skeleton loading state when message is empty
   if (!message?.content?.length && !annotation) {
     return (
-      <div className="relative grid w-full max-w-4xl grid-cols-[auto_auto_1fr] grid-rows-[auto_1fr] py-4">
-        <Avatar className="col-start-1 row-span-full row-start-1 mr-4">
-          <AvatarFallback>AI</AvatarFallback>
-        </Avatar>
-        <div className="col-span-2 col-start-2 space-y-3">
-          <Skeleton className="h-4 w-3/4" />
-          <Skeleton className="h-4 w-1/2" />
-          <Skeleton className="h-4 w-2/3" />
+      <MessagePrimitive.Root className="w-full">
+        <div className="relative grid w-full max-w-4xl grid-cols-[auto_auto_1fr] grid-rows-[auto_1fr] py-4">
+          <Avatar className="col-start-1 row-span-full row-start-1 mr-4">
+            <AvatarFallback>AI</AvatarFallback>
+          </Avatar>
+          <div className="col-span-2 col-start-2 space-y-3">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
+            <Skeleton className="h-4 w-2/3" />
+          </div>
         </div>
-      </div>
+      </MessagePrimitive.Root>
     );
   }
 
   return (
-    <div className="relative grid w-full max-w-4xl grid-cols-[auto_auto_1fr] grid-rows-[auto_1fr] py-4">
-      <Avatar className="col-start-1 row-span-full row-start-1 mr-4">
-        <AvatarFallback>AI</AvatarFallback>
-      </Avatar>
+    <MessagePrimitive.Root className="w-full">
+      <div className="relative grid w-full max-w-4xl grid-cols-[auto_auto_1fr] grid-rows-[auto_1fr] py-4">
+        <Avatar className="col-start-1 row-span-full row-start-1 mr-4">
+          <AvatarFallback>AI</AvatarFallback>
+        </Avatar>
 
-      <div className="text-foreground col-span-2 col-start-2 row-start-1 my-1.5 break-words leading-7">
-        {annotation && <SourceBoxList sources={sources} />}
-      </div>
-
-      {message?.content?.length === 0 && (
-        <div className="col-span-2 col-start-2 space-y-3">
-          <Skeleton className="h-4 w-3/4" />
-          <Skeleton className="h-4 w-1/2" />
-          <Skeleton className="h-4 w-2/3" />
-        </div>
-      )}
-
-      <MessagePrimitive.Root>
         <div className="text-foreground col-span-2 col-start-2 row-start-1 my-1.5 break-words leading-7">
-          <MessagePrimitive.Content components={{ Text: MarkdownText }} />
+          {annotation && <SourceBoxList sources={sources} />}
+          {message?.content?.length > 0 && <MessagePrimitive.Content components={{ Text: MarkdownText }} />}
         </div>
+
+        {message?.content?.length === 0 && (
+          <div className="col-span-2 col-start-2 space-y-3">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
+            <Skeleton className="h-4 w-2/3" />
+          </div>
+        )}
 
         <MyAssistantActionBar />
-
-        <MyBranchPicker className="col-start-2 row-start-2 -ml-2 mr-2" />
-      </MessagePrimitive.Root>
-    </div>
+        <MyBranchPicker className="-ml-2 mr-2" />
+      </div>
+    </MessagePrimitive.Root>
   );
 };
 

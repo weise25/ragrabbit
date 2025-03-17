@@ -2,7 +2,7 @@ import { openai } from "@ai-sdk/openai";
 import { UserError } from "@repo/core";
 import { Source } from "@repo/design/components/chat/source-box";
 import { getPrompt, getRagRetriever } from "@repo/rag/answering/llamaindex";
-import { Metadata, MetadataMode } from "@repo/rag/llamaindex.mjs";
+import { Metadata, MetadataMode, NodeWithScore } from "@repo/rag/llamaindex.mjs";
 import { appendClientMessage, createDataStreamResponse, createIdGenerator, generateId, Message, streamText } from "ai";
 import { checkLimitsIp, checkLimitsUsage, loadMessages, ResponseMessage, saveMessages } from "./db";
 
@@ -58,49 +58,25 @@ async function handleRequest(ip: string, orgId: number, req: Request, res: Respo
   return createDataStreamResponse({
     execute: async (dataStream) => {
       handleAbort(signal);
+      // Retrieve:
       const retriever = await getRagRetriever();
       const relevantSources = await retriever.retrieve({
         query: message.content,
       });
 
-      let content = [];
-      let sources = [];
-      let suggestedPrompts = new Set<string>();
-      for (const source of relevantSources) {
-        const metadata: Metadata = source.node.metadata;
-        // Skip duplicates:
-        if (sources.find((s) => s.url === metadata.pageUrl)) {
-          continue;
-        }
-        sources.push({
-          url: metadata.pageUrl,
-          title: metadata.pageTitle,
-          abstract: metadata.pageDescription?.slice(0, 100),
-          score: Number(source.score.toFixed(2)),
-        } as Source);
+      // Format sources and context text:
+      let { sources, content, suggestedPrompts } = processSources(relevantSources);
 
-        let text = "--- \n";
-        text += "Source: " + metadata.pageTitle + "\n";
-        text += "URL: " + metadata.pageUrl + "\n";
-        text += "---\n";
-        text += source.node.getContent(MetadataMode.NONE) + "\n";
-        content.push(text);
-
-        // Pick the first question:
-        const question = source.node.metadata.questions?.[0];
-        suggestedPrompts.add(question);
-      }
-
-      // Send to UI as a message annotation:
+      // Send to UI as a message annotation so that it shows immediately without waiting for the LLM response:
       handleAbort(signal);
       const sourcesAnnotation = {
         type: "sources",
         data: sources,
       };
-      // Send the annotation immediately by writing an empty text part first
       dataStream.writeMessageAnnotation(sourcesAnnotation);
       handleAbort(signal);
 
+      // Compose messages history:
       let messages = await messagesPromise;
       const contextMessage = "Use the following documentation to answer the question";
       // Skip the sources from previous RAG calls to save space:
@@ -114,11 +90,13 @@ async function handleRequest(ip: string, orgId: number, req: Request, res: Respo
       };
       messages = [...messages, assistantMessage];
 
-      // append the new message:
+      // append the new user message:
       messages = appendClientMessage({
         messages,
         message,
       });
+
+      // Save the chat in the background:
       const savePromise = saveMessages(
         chatId,
         userId,
@@ -136,17 +114,17 @@ async function handleRequest(ip: string, orgId: number, req: Request, res: Respo
       const result = streamText({
         model: openai("gpt-4o-mini"),
         system: getPrompt(),
-        //experimental_transform: smoothStream(),
         messages,
-        // id format for server-side messages:
+        // manual format for server-side messages since we allow branching from the frontend:
         experimental_generateMessageId: createIdGenerator({
           prefix: "msgs",
           size: 16,
         }),
+        // Allow aborting the request if the user closes the tab:
         abortSignal: signal,
 
         async onFinish({ response, usage }) {
-          // Send the questions extracted previously:
+          // Add a few suggested questions:
           const suggestedPromptsAnnotation = {
             type: "suggested-prompts",
             data: Array.from(suggestedPrompts).reverse().slice(0, 3),
@@ -175,4 +153,38 @@ async function handleRequest(ip: string, orgId: number, req: Request, res: Respo
       result.mergeIntoDataStream(dataStream);
     },
   });
+}
+
+/**
+ * Prepare annotations, the text with the sources and extract a few suggested questions:
+ */
+function processSources(relevantSources: NodeWithScore<Metadata>[]) {
+  let content = [];
+  let sources = [];
+  let suggestedPrompts = new Set<string>();
+  for (const source of relevantSources) {
+    const metadata: Metadata = source.node.metadata;
+    // Skip duplicates:
+    if (sources.find((s) => s.url === metadata.pageUrl)) {
+      continue;
+    }
+    sources.push({
+      url: metadata.pageUrl,
+      title: metadata.pageTitle,
+      abstract: metadata.pageDescription?.slice(0, 100),
+      score: Number(source.score.toFixed(2)),
+    } as Source);
+
+    let text = "--- \n";
+    text += "Source: " + metadata.pageTitle + "\n";
+    text += "URL: " + metadata.pageUrl + "\n";
+    text += "---\n";
+    text += source.node.getContent(MetadataMode.NONE) + "\n";
+    content.push(text);
+
+    // Pick the first question:
+    const question = source.node.metadata.questions?.[0];
+    suggestedPrompts.add(question);
+  }
+  return { sources, content, suggestedPrompts };
 }
