@@ -30,6 +30,8 @@ export const widgetConfigAction = authActionClient
       .returning();
 
     revalidatePath("/dashboard/widget");
+    revalidatePath("/chat");
+    revalidatePath("/widget/chat");
     return { success: true, data: widgetConfig };
   });
 
