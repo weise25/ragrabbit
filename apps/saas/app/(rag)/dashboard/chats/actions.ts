@@ -35,6 +35,7 @@ export const getAllChats = authActionClient
         title: chatsTable.title,
         messageCount: count(sql<number>`CASE WHEN ${messagesTable.role} != 'system' THEN 1 END`),
         totalTokens: sql<number>`sum(${messagesTable.tokenCount})`,
+        createdAt: chatsTable.createdAt,
       })
       .from(chatsTable)
       .where(eq(chatsTable.organizationId, ctx?.session?.user?.organizationId || 1))

@@ -17,6 +17,7 @@ import { getAllChats } from "../actions";
 import { useCallback, useEffect, useState } from "react";
 import { useAction } from "next-safe-action/hooks";
 import { toast } from "@repo/design/hooks/use-toast";
+import { formatDistanceToNow } from "date-fns";
 
 export type ChatRow = { id: string; title: string; messageCount: number; totalTokens: number };
 
@@ -93,6 +94,15 @@ export default function ChatsTable({ initialChats, initialTotalCount }: ChatsTab
       accessorKey: "totalTokens",
       ...columnText({ id: "totalTokens", title: "Total Tokens" }),
       cell: ({ row }) => <div className="text-muted-foreground"># {row.getValue("totalTokens") || 0}</div>,
+    },
+    {
+      accessorKey: "createdAt",
+      ...columnText({ id: "createdAt", title: "Date" }),
+      cell: ({ row }) => {
+        const date = new Date(row.getValue("createdAt"));
+        if (!date) return;
+        return <div className="text-muted-foreground">{formatDistanceToNow(date, { addSuffix: true })}</div>;
+      },
     },
     {
       size: 50,
