@@ -5,6 +5,7 @@ import { createContext, useContext, useState } from "react";
 
 export interface ChatContextType {
   chat: ReturnType<typeof useChat> | undefined;
+  setChatId: (chatId: string) => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -25,6 +26,7 @@ interface ChatConfigProviderProps {
 function ChatProvider({ children, initialData = {} }: ChatConfigProviderProps) {
   const value = {
     chat: initialData.chat,
+    setChatId: initialData.setChatId,
   };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

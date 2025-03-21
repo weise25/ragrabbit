@@ -23,7 +23,7 @@ export function UiChatRuntime({
       localStorage?.setItem(`chat-user-key`, userKey);
     }
   }
-  const [chatId] = useState(() => generateId());
+  const [chatId, setChatId] = useState(() => generateId());
   const userChatId = `${userKey}-${chatId}`;
 
   const chat = useChat({
@@ -41,7 +41,7 @@ export function UiChatRuntime({
 
   const runtime = useVercelUseChatRuntime(chat);
   return (
-    <ChatProvider initialData={{ chat }}>
+    <ChatProvider initialData={{ chat, setChatId }}>
       <AssistantRuntimeProvider runtime={runtime}>{children}</AssistantRuntimeProvider>
     </ChatProvider>
   );

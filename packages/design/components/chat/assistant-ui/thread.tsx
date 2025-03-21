@@ -11,36 +11,36 @@ import {
   useThread,
 } from "@assistant-ui/react";
 import type { FC } from "react";
-import { useState, useCallback } from "react";
-import React from "react";
+import React, { useCallback, useState } from "react";
 
 import { cn } from "@repo/design/lib/utils";
 import { Avatar, AvatarFallback } from "@repo/design/shadcn/avatar";
 import { Button } from "@repo/design/shadcn/button";
+import { Skeleton } from "@repo/design/shadcn/skeleton";
 import {
   ArrowDownIcon,
   CheckIcon,
   ChevronLeftIcon,
-  CopyIcon,
-  SendHorizontalIcon,
   ChevronRightIcon,
-  RefreshCwIcon,
+  CopyIcon,
   PencilIcon,
+  RefreshCwIcon,
+  SendHorizontalIcon,
 } from "lucide-react";
 import Image from "next/image";
+import { useDebounce } from "use-debounce";
 import { useChatConfig } from "../chat-config-provider";
+import { SearchResults } from "../search-results";
+import { SourceBoxList } from "../source-box";
 import { MarkdownText } from "./markdown-text";
 import { TooltipIconButton } from "./tooltip-icon-button";
 import { useChatProvider } from "../chat-provider";
-import { SourceBoxListStory } from "../source-box.stories";
-import { Source, SourceBoxList } from "../source-box";
-import { Skeleton } from "@repo/design/shadcn/skeleton";
-import { SearchResults } from "../search-results";
-import { useDebounce } from "use-debounce";
+import { generateId } from "ai";
 
 export const MyThread: FC = () => {
   const { threads } = useAssistantRuntime();
   const { modalMode } = useChatConfig();
+  const { setChatId } = useChatProvider();
   const [hideWelcome, setHideWelcome] = useState(false);
 
   const doHideWelcome = modalMode && hideWelcome;
@@ -72,7 +72,11 @@ export const MyThread: FC = () => {
           <MyThreadScrollToBottom />
           <ThreadPrimitive.If empty={false}>
             <ThreadPrimitive.If running={false}>
-              <Button variant="outline" className="mb-4" onClick={() => threads.switchToNewThread()}>
+              <Button
+                variant="outline"
+                className="mb-4"
+                onClick={() => threads.switchToNewThread() && setChatId(generateId())}
+              >
                 Start new chat
               </Button>
             </ThreadPrimitive.If>

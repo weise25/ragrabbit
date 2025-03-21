@@ -10,6 +10,7 @@ export const maxDuration = 30;
 
 const SOURCES_RAG = 8;
 
+/** Handle new message whith rate and ip limits in parallel with promises and abort signals */
 export async function POST(req: Request, res: Response) {
   const orgId = 1;
   const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || req.headers.get("cf-connecting-ip");
