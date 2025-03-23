@@ -8,7 +8,7 @@
   "devDependencies": {
     "@repo/db": "workspace:*",
     "@repo/logger": "workspace:*",
-    "next": "15.2.1"
+    "next": "15.2.3"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.7.4",
@@ -19,6 +19,6 @@
   "peerDependencies": {
     "@repo/db": "workspace:*",
     "@repo/logger": "workspace:*",
-    "next": "15.2.1"
+    "next": "15.2.3"
   }
 }
