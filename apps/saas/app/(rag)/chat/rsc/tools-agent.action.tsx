@@ -23,7 +23,7 @@ export async function toolsAgent(input: string): Promise<ClientMessage> {
   history.update((messages: ServerMessage[]) => [...messages, { role: "user", content: input }]);
 
   const result = await streamUI({
-    model: openai("gpt-4o-mini"),
+    model: openai("google/gemma-3-27b-it"),
     messages: [...history.get()],
     system: systemPrompt,
 

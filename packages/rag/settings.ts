@@ -53,24 +53,16 @@ if (env.LLM_MODEL === "groq") {
 } else {
   LLM = LLMEnum.openai;
   Settings.llm = new OpenAI({
-    model: "gpt-4o-mini",
-    ...(env.OPENAI_API_BASE_URL ? { baseURL: env.OPENAI_API_BASE_URL } : {}),
+    model: "google/gemma-3-27b-it",
+
   });
 }
 
 const embeddingModel = EmbeddingModel[env.EMBEDDING_MODEL];
 
-if (embeddingModel === EmbeddingModel.openai) {
-  Settings.embedModel = new OpenAIEmbedding({
-    model: "text-embedding-3-large",
-    dimensions: EmbeddingDimensions.openai,
-  });
-} else {
-  // Allows to use local models for embeddings:
-  const { HuggingFaceEmbedding } = await import("@llamaindex/huggingface");
-  Settings.embedModel = new HuggingFaceEmbedding({
-    modelType: embeddingModel,
-  });
-}
+Settings.embedModel = new OpenAIEmbedding({
+  model: "BAAI/bge-m3",
+  dimensions: EmbeddingDimensions.openai,
+});
 
 console.log(`🤖 Using ${LLM} and ${embeddingModel} embedding model`);

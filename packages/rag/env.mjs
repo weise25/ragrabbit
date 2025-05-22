@@ -25,7 +25,7 @@ export const env = createEnv({
     NODE_ENV: optional.default("development"),
     LLM_MODEL: z.enum(["openai", "groq", "anthropic"]).default("openai"),
     OPENAI_API_KEY: requireOpenAIAPIKey ? required : optional,
-    OPENAI_API_BASE_URL: optional,
+    OPENAI_API_BASE_URL: optional.default("https://api.kluster.ai/v1"),
     GROQ_API_KEY: process.env.LLM_MODEL === "groq" ? required : optional,
     ANTHROPIC_API_KEY: process.env.LLM_MODEL === "anthropic" ? required : optional,
     EMBEDDING_MODEL: z.enum(["baai", "xenova", "openai"]).default(!!process.env.OPENAI_API_KEY ? "openai" : "baai"),

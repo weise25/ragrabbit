@@ -83,7 +83,9 @@ export async function reformatAndExtractMetaLLM(
   log.info("Reformatting content with LLM");
 
   try {
-    const openai = new OpenAI();
+    const openai = new OpenAI({
+  baseURL: process.env.OPENAI_API_BASE_URL || "https://api.kluster.ai/v1"
+});
     const promptMessages: ChatCompletionMessageParam[] = [
       {
         role: "system",
@@ -96,7 +98,7 @@ export async function reformatAndExtractMetaLLM(
     ];
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "google/gemma-3-27b-it",
       temperature: 0.1,
 
       messages: promptMessages,
@@ -109,7 +111,7 @@ export async function reformatAndExtractMetaLLM(
       log.info("Asking for continuation");
       // Ask for continuation:
       responseContinuation = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: "google/gemma-3-27b-it",
         temperature: 0.1,
         messages: [
           ...promptMessages,
@@ -191,10 +193,12 @@ export async function extractMetadataLLM(text: string, url: string): Promise<Par
   }
 
   log.debug({ url, bytes: text.length }, "Extracting metadata with LLM");
-  const openai = new OpenAI();
+  const openai = new OpenAI({
+  baseURL: process.env.OPENAI_API_BASE_URL || "https://api.kluster.ai/v1"
+});
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "google/gemma-3-27b-it",
       response_format: zodResponseFormat(metadataSchema, "metadata"),
       max_tokens: 5000,
       temperature: 0.2,

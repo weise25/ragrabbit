@@ -113,7 +113,7 @@ async function handleRequest(ip: string, orgId: number, req: Request, res: Respo
       );
 
       const result = streamText({
-        model: openai("gpt-4o-mini"),
+        model: openai("google/gemma-3-27b-it"),
         system: getPrompt(),
         messages,
         // manual format for server-side messages since we allow branching from the frontend:
